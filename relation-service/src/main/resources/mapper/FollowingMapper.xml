@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.social.relation.mapper.FollowingMapper">
+
+    <insert id="insertIntoShardedTable">
+        INSERT INTO following_${tableIndex} (follower_id, following_id, created_at, updated_at)
+        VALUES (#{followerId}, #{followingId}, NOW(), NOW())
+    </insert>
+
+    <update id="deleteFromShardedTable">
+        UPDATE following_${tableIndex}
+        SET deleted = 1, updated_at = NOW()
+        WHERE follower_id = #{followerId} AND following_id = #{followingId} AND deleted = 0
+    </update>
+
+</mapper>

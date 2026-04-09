@@ -1,0 +1,221 @@
+// 清新风格全局样式变量
+
+// 色彩方案
+$primary-color: #4CAF82;        // 薄荷绿
+$secondary-color: #87CEEB;        // 天空蓝
+$accent-color: #FF7F7F;           // 珊瑚粉
+$bg-color: #FAFAFA;              // 米白背景
+$card-bg: #FFFFFF;                // 卡片背景
+$text-primary: #2C3E50;           // 深灰文字
+$text-secondary: #95A5A6;        // 浅灰文字
+$border-color: #E8E8E8;           // 淡灰边框
+$success-color: #66BB6A;         // 草绿
+$error-color: #EF5350;           // 浅红
+
+// 字体
+$font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+$font-family-en: "SF Pro Display", "Helvetica Neue", sans-serif;
+
+// 字号
+$font-size-xs: 12px;
+$font-size-sm: 13px;
+$font-size-base: 14px;
+$font-size-lg: 16px;
+$font-size-xl: 18px;
+$font-size-2xl: 20px;
+$font-size-3xl: 24px;
+
+// 行高
+$line-height-base: 1.6;
+$line-height-heading: 1.3;
+
+// 间距
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+// 圆角
+$border-radius-sm: 8px;
+$border-radius-md: 12px;
+$border-radius-lg: 16px;
+$border-radius-full: 50%;
+
+// 阴影
+$shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
+$shadow-popup: 0 4px 24px rgba(0, 0, 0, 0.12);
+$shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+// 动效
+$transition-fast: 150ms ease;
+$transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+// CSS 变量
+:root {
+  --primary-color: #{$primary-color};
+  --secondary-color: #{$secondary-color};
+  --accent-color: #{$accent-color};
+  --bg-color: #{$bg-color};
+  --card-bg: #{$card-bg};
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --border-color: #{$border-color};
+  --success-color: #{$success-color};
+  --error-color: #{$error-color};
+
+  --font-family: #{$font-family};
+  --font-size-xs: #{$font-size-xs};
+  --font-size-sm: #{$font-size-sm};
+  --font-size-base: #{$font-size-base};
+  --font-size-lg: #{$font-size-lg};
+  --font-size-xl: #{$font-size-xl};
+  --font-size-2xl: #{$font-size-2xl};
+  --font-size-3xl: #{$font-size-3xl};
+
+  --spacing-xs: #{$spacing-xs};
+  --spacing-sm: #{$spacing-sm};
+  --spacing-md: #{$spacing-md};
+  --spacing-lg: #{$spacing-lg};
+  --spacing-xl: #{$spacing-xl};
+
+  --border-radius-sm: #{$border-radius-sm};
+  --border-radius-md: #{$border-radius-md};
+  --border-radius-lg: #{$border-radius-lg};
+
+  --shadow-card: #{$shadow-card};
+  --shadow-popup: #{$shadow-popup};
+  --shadow-hover: #{$shadow-hover};
+
+  --transition-fast: #{$transition-fast};
+  --transition-base: #{$transition-base};
+  --transition-slow: #{$transition-slow};
+}
+
+// CSS Reset
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: $line-height-base;
+  color: var(--text-primary);
+  background-color: var(--bg-color);
+  min-height: 100vh;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: darken($primary-color, 10%);
+  }
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+// 通用卡片样式
+.card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+
+  &:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+  }
+}
+
+// 清新按钮样式
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-base);
+
+  &:hover {
+    background-color: darken($primary-color, 8%);
+    box-shadow: var(--shadow-card);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// 分页或加载更多
+.page-container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+// Element Plus 组件样式覆盖
+.el-button--primary {
+  --el-button-bg-color: #{$primary-color};
+  --el-button-border-color: #{$primary-color};
+  --el-button-hover-bg-color: #{darken($primary-color, 6%)};
+  --el-button-hover-border-color: #{darken($primary-color, 6%)};
+}
+
+.el-input__wrapper {
+  border-radius: var(--border-radius-sm);
+}
+
+.el-card {
+  border-radius: var(--border-radius-md);
+  border: none;
+  box-shadow: var(--shadow-card);
+}
+
+// 页面切换动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-base);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

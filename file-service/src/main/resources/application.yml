@@ -1,0 +1,48 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: file-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/social_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 55MB
+  main:
+    allow-bean-definition-overriding: true
+  jpa:
+    open-in-view: false
+
+dubbo:
+  application:
+    name: file-service
+  protocol:
+    name: dubbo
+    port: 20886
+  registry:
+    address: nacos://localhost:8848
+  scan:
+    base-packages: com.social.file
+
+jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: true
+  properties:
+    hibernate:
+      format_sql: true
+      dialect: org.hibernate.dialect.MySQLDialect
+
+file:
+  storage:
+    path: G:/claude-project/csdn-wanghaof/data/files
+  allowed:
+    image-types: jpg,jpeg,png,gif,webp
+    video-types: mp4,mov,avi,webm
+  max-video-size: 52428800

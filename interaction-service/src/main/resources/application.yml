@@ -1,0 +1,45 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: interaction-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/social_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: root
+      database: 0
+  main:
+    allow-bean-definition-overriding: true
+  jpa:
+    open-in-view: false
+
+dubbo:
+  application:
+    name: interaction-service
+  protocol:
+    name: dubbo
+    port: 20883
+  registry:
+    address: nacos://localhost:8848
+  scan:
+    base-packages: com.social.interaction
+
+jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: true
+  properties:
+    hibernate:
+      format_sql: true
+      dialect: org.hibernate.dialect.MySQLDialect
+
+jwt:
+  secret: social-sharing-platform-secret-key-change-in-production
+  expiration: 86400000
