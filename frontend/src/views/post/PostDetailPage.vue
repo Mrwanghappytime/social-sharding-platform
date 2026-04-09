@@ -49,12 +49,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { PostType } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { usePostStore } from '@/stores/post'
-import { getComments, likePost, unlikePost } from '@/api/interaction'
+import { getComments } from '@/api/interaction'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
@@ -83,17 +83,8 @@ const formatTime = (time: string) => {
 
 const toggleLike = async () => {
   if (!isLoggedIn.value) return
-  const currentPost = postStore.currentPost
-  if (!currentPost) return
-
   try {
-    if (currentPost.isLiked) {
-      await unlikePost(postId.value)
-      currentPost.isLiked = false
-    } else {
-      await likePost(postId.value)
-      currentPost.isLiked = true
-    }
+    await postStore.toggleLike(postId.value)
   } catch (error) {
     console.error('Failed to toggle like:', error)
   }

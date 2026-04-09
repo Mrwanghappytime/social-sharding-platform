@@ -2,7 +2,7 @@ import request from '@/utils/axios'
 
 // 关注用户
 export const followUser = (userId: number) => {
-  return request.post('/relations/follow', { userId })
+  return request.post(`/relations/follow/${userId}`)
 }
 
 // 取消关注
