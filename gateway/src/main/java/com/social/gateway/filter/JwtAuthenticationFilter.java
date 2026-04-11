@@ -34,7 +34,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<String> WHITE_LIST = List.of(
             "/api/users/login",
             "/api/users/register",
-            "/ws/notifications",
             "/actuator",
             "/api/posts/public",
             "/api/posts/feed",
@@ -49,39 +48,40 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        // Skip authentication for white list paths
+        String authHeader = request.getHeaders().getFirst(AUTHORIZATION_HEADER);
+
+        // Parse token if present (even on whitelisted routes for user info)
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+            String token = authHeader.substring(BEARER_PREFIX.length());
+            try {
+                Claims claims = validateToken(token);
+                Long userId = claims.get("userId", Long.class);
+                String username = claims.getSubject();
+
+                // Add user info to request headers
+                ServerHttpRequest modifiedRequest = request.mutate()
+                        .header(USER_ID_HEADER, String.valueOf(userId))
+                        .header(USER_NAME_HEADER, username)
+                        .build();
+
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+            } catch (Exception e) {
+                // Token invalid/expired - for whitelisted paths, continue without user info
+                // For non-whitelisted paths, this will be caught below
+            }
+        }
+
+        // Reject non-whitelisted paths without valid token
         if (isWhiteListed(path)) {
             return chain.filter(exchange);
         }
-
-        // WebSocket connections handle authentication separately
-        if (path.startsWith("/ws/")) {
-            return chain.filter(exchange);
-        }
-
-        String authHeader = request.getHeaders().getFirst(AUTHORIZATION_HEADER);
 
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             return unauthorized(exchange.getResponse(), "Missing or invalid Authorization header");
         }
 
-        String token = authHeader.substring(BEARER_PREFIX.length());
-
-        try {
-            Claims claims = validateToken(token);
-            Long userId = claims.get("userId", Long.class);
-            String username = claims.getSubject();
-
-            // Add user info to request headers
-            ServerHttpRequest modifiedRequest = request.mutate()
-                    .header(USER_ID_HEADER, String.valueOf(userId))
-                    .header(USER_NAME_HEADER, username)
-                    .build();
-
-            return chain.filter(exchange.mutate().request(modifiedRequest).build());
-        } catch (Exception e) {
-            return unauthorized(exchange.getResponse(), "Invalid or expired token: " + e.getMessage());
-        }
+        // This shouldn't be reached, but kept as safety net
+        return unauthorized(exchange.getResponse(), "Invalid or expired token");
     }
 
     private boolean isWhiteListed(String path) {
