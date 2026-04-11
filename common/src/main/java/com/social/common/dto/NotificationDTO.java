@@ -1,9 +1,15 @@
 package com.social.common.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
 
 @Data
-public class NotificationDTO {
+@NoArgsConstructor
+@AllArgsConstructor
+public class NotificationDTO implements Serializable {
     private Long id;
     private String type;
     private Long actorId;

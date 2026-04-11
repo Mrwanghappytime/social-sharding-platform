@@ -1,7 +1,10 @@
 package com.social.relation.service;
 
 import com.social.common.api.NotificationService;
+import com.social.common.api.RelationService;
 import com.social.common.api.UserService;
+import com.social.common.dto.RelationCountDTO;
+import com.social.common.dto.UserRelationDTO;
 import com.social.common.entity.Follower;
 import com.social.common.entity.Following;
 import com.social.common.enums.NotificationType;
@@ -9,10 +12,9 @@ import com.social.common.exception.BusinessException;
 import com.social.common.exception.ErrorCode;
 import com.social.common.repository.FollowerRepository;
 import com.social.common.repository.FollowingRepository;
-import com.social.relation.dto.RelationCountDTO;
-import com.social.relation.dto.UserRelationDTO;
 import com.social.relation.util.TableShardingUtil;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@DubboService(version = "1.0.0")
 public class RelationServiceImpl implements RelationService {
 
     @Autowired

@@ -58,11 +58,19 @@ const loadMore = async () => {
 }
 
 const handleLike = async (post: Post) => {
-  // TODO: implement like
+  try {
+    await postStore.toggleLike(post.id!)
+  } catch (error) {
+    console.error('Failed to like:', error)
+  }
 }
 
 const handleUnlike = async (post: Post) => {
-  // TODO: implement unlike
+  try {
+    await postStore.toggleLike(post.id!)
+  } catch (error) {
+    console.error('Failed to unlike:', error)
+  }
 }
 
 const handleComment = (post: Post) => {

@@ -18,6 +18,10 @@ spring:
     allow-bean-definition-overriding: true
   jpa:
     open-in-view: false
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
 
 dubbo:
   application:

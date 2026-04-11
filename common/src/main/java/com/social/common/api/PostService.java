@@ -1,6 +1,9 @@
 package com.social.common.api;
 
 import com.social.common.dto.PostDTO;
+import com.social.common.dto.PageResult;
+import com.social.common.enums.PostType;
+
 import java.util.List;
 
 public interface PostService {
@@ -19,5 +22,13 @@ public interface PostService {
 
     void decrementCommentCount(Long postId);
 
-    boolean hasUserLikedPost(Long postId, Long userId);
+    PostDTO createPost(Long userId, String title, String content, PostType type, String imageUrls, String videoUrl);
+
+    void deletePost(Long postId, Long userId);
+
+    PageResult<PostDTO> getUserPosts(Long userId, Integer page, Integer size);
+
+    PageResult<PostDTO> getFeed(Integer page, Integer size);
+
+    PageResult<PostDTO> searchPosts(String keyword, Integer page, Integer size);
 }

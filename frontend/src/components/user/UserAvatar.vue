@@ -1,9 +1,9 @@
 <template>
   <div class="user-avatar" :style="{ width: size + 'px', height: size + 'px' }">
     <img
-      v-if="user?.avatar"
-      :src="user.avatar"
-      :alt="user.username"
+      v-if="avatarUrl"
+      :src="avatarUrl"
+      :alt="user?.username"
       class="avatar-img"
       @error="handleImgError"
     />
@@ -20,6 +20,11 @@ const props = withDefaults(defineProps<{
   size?: number
 }>(), {
   size: 40
+})
+
+const avatarUrl = computed(() => {
+  // Support both 'avatar' and 'userAvatar' field names
+  return props.user?.avatar || (props.user as any)?.userAvatar || ''
 })
 
 const placeholderText = computed(() => {

@@ -124,24 +124,36 @@ export const usePostStore = defineStore('post', () => {
   }
 
   const toggleLike = async (postId: number) => {
-    const post = currentPost.value
-    if (!post || post.id !== postId) {
-      console.log('toggleLike early return:', { post, postId })
+    // Find the post in posts array
+    const postIndex = posts.value.findIndex(p => Number(p.id) === Number(postId))
+    let post = postIndex !== -1 ? posts.value[postIndex] : null
+
+    // Also check currentPost if not found in posts
+    if (!post && currentPost.value && Number(currentPost.value.id) === Number(postId)) {
+      post = currentPost.value
+    }
+
+    if (!post) {
       return
     }
 
     const wasLiked = post.isLiked === true
     const originalCount = post.likeCount || 0
-    console.log('toggleLike before:', { wasLiked, originalCount, isLiked: post.isLiked })
 
-    // Optimistic update - replace with new object to trigger reactivity
+    // Optimistic update
     const updatedPost = { ...post }
     updatedPost.isLiked = !wasLiked
     updatedPost.likeCount = wasLiked
       ? Math.max(0, originalCount - 1)
       : originalCount + 1
-    currentPost.value = updatedPost
-    console.log('toggleLike after:', { isLiked: updatedPost.isLiked, likeCount: updatedPost.likeCount })
+
+    // Update both currentPost and posts array
+    if (currentPost.value && Number(currentPost.value.id) === Number(postId)) {
+      currentPost.value = updatedPost
+    }
+    if (postIndex !== -1) {
+      posts.value[postIndex] = updatedPost
+    }
 
     try {
       if (wasLiked) {
@@ -151,7 +163,12 @@ export const usePostStore = defineStore('post', () => {
       }
     } catch (error) {
       // Revert on failure
-      currentPost.value = { ...post }
+      if (currentPost.value && Number(currentPost.value.id) === Number(postId)) {
+        currentPost.value = { ...post }
+      }
+      if (postIndex !== -1) {
+        posts.value[postIndex] = post
+      }
       throw error
     }
   }

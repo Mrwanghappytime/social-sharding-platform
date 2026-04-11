@@ -50,7 +50,6 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { likePost, unlikePost } from '@/api/interaction'
 import UserAvatar from '@/components/user/UserAvatar.vue'
 import MediaGallery from '@/components/media/MediaGallery.vue'
 import type { Post, MediaFile } from '@/types'
@@ -111,16 +110,11 @@ const toggleLike = async () => {
     return
   }
 
-  try {
-    if (props.post.isLiked) {
-      await unlikePost(props.post.id)
-      emit('unlike', props.post)
-    } else {
-      await likePost(props.post.id)
-      emit('like', props.post)
-    }
-  } catch (error) {
-    console.error('Failed to toggle like:', error)
+  // Emit event, let parent/store handle API call
+  if (props.post.isLiked) {
+    emit('unlike', props.post)
+  } else {
+    emit('like', props.post)
   }
 }
 </script>

@@ -1,0 +1,16 @@
+package com.social.common.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserRelationDTO implements Serializable {
+    private Long userId;
+    private String username;
+    private String avatar;
+}
