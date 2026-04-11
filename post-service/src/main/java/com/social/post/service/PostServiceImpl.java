@@ -3,7 +3,6 @@ package com.social.post.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.social.common.api.InteractionService;
 import com.social.common.api.PostService;
 import com.social.common.dto.PostDTO;
 import com.social.common.dto.PageResult;
@@ -11,7 +10,6 @@ import com.social.common.entity.Post;
 import com.social.common.exception.BusinessException;
 import com.social.common.exception.ErrorCode;
 import com.social.common.repository.PostRepository;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -37,9 +35,6 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @DubboReference(version = "1.0.0", check = false)
-    private InteractionService interactionService;
 
     private static final String POST_CACHE_KEY = "post:";
     private static final String USER_POSTS_KEY = "user:posts:";
@@ -100,16 +95,8 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public boolean hasUserLikedPost(Long postId, Long userId) {
-        try {
-            return interactionService.getLikeStatus(postId, userId).getLiked();
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     @Transactional
-    public Post createPost(Long userId, String title, String content, com.social.common.enums.PostType type, String imageUrls, String videoUrl) {
+    public PostDTO createPost(Long userId, String title, String content, com.social.common.enums.PostType type, String imageUrls, String videoUrl) {
         Post post = new Post();
         post.setUserId(userId);
         post.setTitle(title);
@@ -122,9 +109,10 @@ public class PostServiceImpl implements PostService {
         redisTemplate.delete(USER_POSTS_KEY + userId);
         redisTemplate.delete("post:feed");
 
-        return savedPost;
+        return toPostDTO(savedPost);
     }
 
+    @Override
     @Transactional
     public void deletePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
@@ -141,6 +129,7 @@ public class PostServiceImpl implements PostService {
         redisTemplate.delete("post:feed");
     }
 
+    @Override
     public PageResult<PostDTO> getUserPosts(Long userId, Integer page, Integer size) {
         PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Post> postPage = postRepository.findByUserId(userId, pageRequest);
@@ -152,6 +141,7 @@ public class PostServiceImpl implements PostService {
         return PageResult.of(dtoList, postPage.getTotalElements(), page, size);
     }
 
+    @Override
     public PageResult<PostDTO> getFeed(Integer page, Integer size) {
         PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Post> postPage = postRepository.findAll(pageRequest);
@@ -163,6 +153,7 @@ public class PostServiceImpl implements PostService {
         return PageResult.of(dtoList, postPage.getTotalElements(), page, size);
     }
 
+    @Override
     public PageResult<PostDTO> searchPosts(String keyword, Integer page, Integer size) {
         PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Post> postPage;

@@ -6,7 +6,8 @@ import com.social.common.enums.NotificationType;
 
 public interface NotificationService {
 
-    void sendNotification(Long recipientId, NotificationType type, Long actorId, Long targetId, String targetType);
+    void sendNotification(Long recipientId, NotificationType type, Long actorId, Long targetId,
+                         String targetType, String actorUsername, String actorAvatar, boolean isKol);
 
     PageResult<NotificationDTO> getNotificationList(Long recipientId, Integer page, Integer size);
 

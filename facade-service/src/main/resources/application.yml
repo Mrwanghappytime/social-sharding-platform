@@ -1,0 +1,36 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: facade-service
+  main:
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: localhost:8848
+
+dubbo:
+  application:
+    name: facade-service
+  protocol:
+    name: dubbo
+    port: 20887
+  registry:
+    address: nacos://localhost:8848
+  scan:
+    base-packages: com.social.facade.controller,com.social.common
+
+logging:
+  level:
+    com.social.facade: DEBUG

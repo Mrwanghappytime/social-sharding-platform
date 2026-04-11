@@ -54,8 +54,9 @@ public class UserServiceImpl implements UserService {
         return userRepository.existsById(userId);
     }
 
+    @Override
     @Transactional
-    public User register(String username, String password) {
+    public UserDTO register(String username, String password) {
         if (userRepository.existsByUsername(username)) {
             throw new BusinessException(ErrorCode.USERNAME_EXISTS, "用户名已存在");
         }
@@ -64,11 +65,12 @@ public class UserServiceImpl implements UserService {
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setAvatar("");
-        return userRepository.save(user);
+        return toUserDTO(userRepository.save(user));
     }
 
+    @Override
     @Transactional
-    public User login(String username, String password) {
+    public UserDTO login(String username, String password) {
         Optional<User> userOpt = userRepository.findByUsername(username);
         User user = userOpt.orElseThrow(() ->
             new BusinessException(ErrorCode.INVALID_CREDENTIALS, "用户名或密码错误"));
@@ -76,18 +78,19 @@ public class UserServiceImpl implements UserService {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS, "用户名或密码错误");
         }
-        return user;
+        return toUserDTO(user);
     }
 
+    @Override
     @Transactional
-    public User updateAvatar(Long userId, String avatar) {
+    public UserDTO updateAvatar(Long userId, String avatar) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND, "用户不存在");
         }
         User user = userOpt.get();
         user.setAvatar(avatar);
-        return userRepository.save(user);
+        return toUserDTO(userRepository.save(user));
     }
 
     private UserDTO toUserDTO(User user) {

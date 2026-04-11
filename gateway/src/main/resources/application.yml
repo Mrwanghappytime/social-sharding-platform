@@ -13,87 +13,27 @@ spring:
           enabled: true
           lower-case-service-id: true
       routes:
-        # User Service
-        - id: user-service
-          uri: http://localhost:8081
+        # Facade Service - all /api/** requests
+        - id: facade-service
+          uri: lb://facade-service
           predicates:
-            - Path=/api/users/**
+            - Path=/api/**
           filters:
             - StripPrefix=1
 
-        # Post Service
-        - id: post-service
-          uri: http://localhost:8082
-          predicates:
-            - Path=/api/posts/**
-          filters:
-            - StripPrefix=1
-
-        # Interactions (Likes/Comments) - routed to interaction-service
-        - id: interaction-service
-          uri: http://localhost:8083
-          predicates:
-            - Path=/api/interactions/**
-          filters:
-            - StripPrefix=1
-
-        # Relation Service (Followers/Following)
-        - id: relation-service
-          uri: http://localhost:8084
-          predicates:
-            - Path=/api/relations/**
-          filters:
-            - StripPrefix=1
-
-        # Notification Service
-        - id: notification-service
-          uri: http://localhost:8085
-          predicates:
-            - Path=/api/notifications/**
-          filters:
-            - StripPrefix=1
-
-        # File Service
-        - id: file-service
-          uri: http://localhost:8086
+        # File requests - route to facade which proxies to file-service
+        - id: facade-files
+          uri: lb://facade-service
           predicates:
             - Path=/files/**
-
-        # File Service API (for uploads)
-        - id: file-service-api
-          uri: http://localhost:8086
-          predicates:
-            - Path=/api/files/**
           filters:
-            - StripPrefix=1
-
-      # WebSocket routing to notification-service
-      websocket:
-        routes:
-          - id: notification-websocket
-            uri: ws://localhost:8085
-            predicates:
-              - Path=/ws/notify/**
-
+            - StripPrefix=0
   nacos:
     discovery:
       enabled: true
       server-addr: 127.0.0.1:8848
       namespace: public
       group: DEFAULT_GROUP
-
-  # Redis Configuration for Pub/Sub
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: root
-      database: 0
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
 
 # JWT Configuration
 jwt:

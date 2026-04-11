@@ -21,6 +21,12 @@ public class Notification extends BaseEntity {
     @Column(name = "actor_id", nullable = false)
     private Long actorId;
 
+    @Column(name = "actor_username", length = 100)
+    private String actorUsername;
+
+    @Column(name = "actor_avatar", length = 500)
+    private String actorAvatar;
+
     @Column(name = "target_id", nullable = false)
     private Long targetId;
 

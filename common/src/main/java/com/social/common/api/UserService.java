@@ -11,4 +11,10 @@ public interface UserService {
     Long getFollowerCount(Long userId);
 
     boolean isUserExists(Long userId);
+
+    UserDTO register(String username, String password);
+
+    UserDTO login(String username, String password);
+
+    UserDTO updateAvatar(Long userId, String avatar);
 }

@@ -14,15 +14,8 @@ import java.util.List;
  * Route definitions for the Gateway service.
  *
  * Routes configured in application.yml:
- * - /api/users/** -> user-service:8081
- * - /api/posts/** -> post-service:8082
- * - /api/interactions/** -> interaction-service:8083 (likes/comments)
- * - /api/relations/** -> relation-service:8084
- * - /api/notifications/** -> notification-service:8085
- * - /files/** -> file-service:8086
- *
- * WebSocket:
- * - /ws/notifications -> NotificationWebSocketHandler
+ * - /api/** -> facade-service:8087
+ * - /files/** -> facade-service:8087 (proxies to file-service)
  */
 @Configuration
 public class RouteDefinitions {

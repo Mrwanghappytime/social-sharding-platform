@@ -54,6 +54,28 @@ CREATE TABLE IF NOT EXISTS likes (
     INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Following table (who I follow) - non-sharded for now
+CREATE TABLE IF NOT EXISTS following (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    follower_id BIGINT NOT NULL,
+    following_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE INDEX uk_follower_following (follower_id, following_id),
+    INDEX idx_following_id (following_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Followers table (who follows me) - non-sharded for now
+CREATE TABLE IF NOT EXISTS followers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    follower_id BIGINT NOT NULL,
+    following_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE INDEX uk_follower_following (follower_id, following_id),
+    INDEX idx_following_id (following_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Following table (who I follow) - 16 sharding tables
 CREATE TABLE IF NOT EXISTS following_0 (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -612,3 +634,59 @@ CREATE TABLE IF NOT EXISTS files (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_post_id (post_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- Migration: Add actor_username and actor_avatar to notifications tables
+-- Date: 2026-04-11
+-- Description: Notification entity now stores actor info directly
+-- =====================================================
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_0 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_0 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_1 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_1 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_2 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_2 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_3 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_3 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_4 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_4 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_5 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_5 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_6 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_6 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_7 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_7 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_8 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_8 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_9 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_9 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_10 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_10 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_11 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_11 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_12 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_12 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_13 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_13 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_14 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_14 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+ALTER TABLE notifications_15 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+ALTER TABLE notifications_15 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
