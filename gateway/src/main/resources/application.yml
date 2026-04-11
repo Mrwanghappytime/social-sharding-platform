@@ -49,8 +49,17 @@ dubbo:
   provider:
     timeout: 5000
 
-# Logging
+# Logging Configuration
 logging:
+  config: classpath:logback-spring.xml
   level:
+    root: INFO
     org.springframework.cloud.gateway: DEBUG
     com.social.gateway: DEBUG
+  log-path: ${LOG_PATH:logs}
+
+# Service info for logging (can be overridden by environment)
+service:
+  name: gateway
+  ip: ${HOST_IP:127.0.0.1}
+  port: 8080

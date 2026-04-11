@@ -29,6 +29,11 @@ dubbo:
     address: nacos://localhost:8848
   scan:
     base-packages: com.social.notification
+  consumer:
+    check: false
+    filter: dubboTraceFilter
+  provider:
+    filter: dubboTraceFilter
 
 jpa:
   hibernate:
@@ -45,3 +50,15 @@ notification:
 
 jwt:
   secret: social-sharing-platform-secret-key-change-in-production
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: INFO
+    com.social.notification: DEBUG
+  log-path: ${LOG_PATH:logs}
+
+service:
+  name: notification-service
+  ip: ${HOST_IP:127.0.0.1}
+  port: 8085

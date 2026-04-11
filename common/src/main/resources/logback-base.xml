@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<included>
+    <!-- Console appender with unified format -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <!-- Unified log format: [serviceName[IP:PORT]][timestamp][traceId][threadId][level] message (class:method:line) -->
+                <pattern>[${SERVICE_NAME:-unknown}[${SERVICE_IP:-127.0.0.1}:${SERVER_PORT:-8080}]][%d{yyyy-MM-dd HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg (%logger{36}.%method:%line)</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <!-- File appender with rolling policy -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH:-logs}/${SERVICE_NAME:-app}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH:-logs}/${SERVICE_NAME:-app}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>30MB</maxFileSize>
+            <maxHistory>17</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>[${SERVICE_NAME:-unknown}[${SERVICE_IP:-127.0.0.1}:${SERVER_PORT:-8080}]][%d{yyyy-MM-dd HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg (%logger{36}.%method:%line)</pattern>
+            </layout>
+        </encoder>
+        <prudent>false</prudent>
+    </appender>
+
+    <!-- Async appender for better performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>512</queueSize>
+        <appender-ref ref="FILE"/>
+    </appender>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+
+    <!-- Application loggers -->
+    <logger name="com.social" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <!-- Dubbo loggers -->
+    <logger name="org.apache.dubbo" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+
+    <!-- Spring loggers -->
+    <logger name="org.springframework" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+</included>

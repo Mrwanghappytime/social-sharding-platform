@@ -30,7 +30,20 @@ dubbo:
     address: nacos://localhost:8848
   scan:
     base-packages: com.social.facade.controller,com.social.common
+  consumer:
+    check: false
+    filter: dubboTraceFilter
+  provider:
+    filter: dubboTraceFilter
 
 logging:
+  config: classpath:logback-spring.xml
   level:
+    root: INFO
     com.social.facade: DEBUG
+  log-path: ${LOG_PATH:logs}
+
+service:
+  name: facade-service
+  ip: ${HOST_IP:127.0.0.1}
+  port: 8087

@@ -50,3 +50,15 @@ file:
     image-types: jpg,jpeg,png,gif,webp
     video-types: mp4,mov,avi,webm
   max-video-size: 52428800
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: INFO
+    com.social.file: DEBUG
+  log-path: ${LOG_PATH:logs}
+
+service:
+  name: file-service
+  ip: ${HOST_IP:127.0.0.1}
+  port: 8086
