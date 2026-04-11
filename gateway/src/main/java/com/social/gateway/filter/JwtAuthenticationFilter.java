@@ -15,12 +15,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 
+@Slf4j
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
+
+    public static final String TRACE_ID_HEADER = "X-Trace-Id";
+    public static final String TRACE_ID_LOG_KEY = "traceId";
 
     @Value("${jwt.secret:social-sharing-platform-secret-key-change-in-production}")
     private String jwtSecret;
@@ -48,7 +55,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        String authHeader = request.getHeaders().getFirst(AUTHORIZATION_HEADER);
+        // Generate and set traceId
+        String traceId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        final String finalTraceId = traceId;
+
+        log.info("[{}] {} {}", finalTraceId, request.getMethod(), path);
+
+        // Add traceId to request headers
+        ServerHttpRequest modifiedRequest = request.mutate()
+                .header(TRACE_ID_HEADER, finalTraceId)
+                .build();
+
+        String authHeader = modifiedRequest.getHeaders().getFirst(AUTHORIZATION_HEADER);
 
         // Parse token if present (even on whitelisted routes for user info)
         if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
@@ -57,9 +75,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 Claims claims = validateToken(token);
                 Long userId = claims.get("userId", Long.class);
                 String username = claims.getSubject();
+                log.info("[{}] User authenticated: userId={}, username={}", finalTraceId, userId, username);
 
-                // Add user info to request headers
-                ServerHttpRequest modifiedRequest = request.mutate()
+                // Add user info + traceId to request headers
+                modifiedRequest = modifiedRequest.mutate()
                         .header(USER_ID_HEADER, String.valueOf(userId))
                         .header(USER_NAME_HEADER, username)
                         .build();
@@ -73,7 +92,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         // Reject non-whitelisted paths without valid token
         if (isWhiteListed(path)) {
-            return chain.filter(exchange);
+            log.info("[{}] Path whitelisted, proceeding without auth", finalTraceId);
+            return chain.filter(exchange.mutate().request(modifiedRequest).build());
         }
 
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {

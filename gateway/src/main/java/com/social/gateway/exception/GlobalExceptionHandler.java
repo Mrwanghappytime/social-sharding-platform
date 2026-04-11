@@ -4,6 +4,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -18,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Component
 @Order(-2) // Execute before default exception handlers
 public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
@@ -25,6 +27,11 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
     @Override
     public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
         ServerHttpResponse response = exchange.getResponse();
+        String path = exchange.getRequest().getPath().value();
+        String traceId = exchange.getRequest().getHeaders().getFirst("X-Trace-Id");
+
+        // Log full stack trace for all errors
+        log.error("[{}] {} {} - Error: {}", traceId, exchange.getRequest().getMethod(), path, ex.getMessage(), ex);
 
         // Set default status code
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -60,8 +67,12 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("code", status.value());
         errorResponse.put("message", message);
-        errorResponse.put("path", exchange.getRequest().getPath().value());
+        errorResponse.put("path", path);
+        errorResponse.put("traceId", traceId);
         errorResponse.put("timestamp", System.currentTimeMillis());
+        if (ex.getMessage() != null) {
+            errorResponse.put("errorDetail", ex.getMessage());
+        }
 
         String body = toJsonString(errorResponse);
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));

@@ -9,6 +9,8 @@ import com.social.common.dto.*;
 import com.social.common.enums.PostType;
 import com.social.common.exception.BusinessException;
 import com.social.common.exception.ErrorCode;
+import com.social.facade.dto.PageResultFacadeResponse;
+import com.social.facade.dto.PostFacadeResponse;
 import jakarta.validation.Valid;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +35,7 @@ public class PostFacadeController {
     private ObjectMapper objectMapper;
 
     @PostMapping
-    public Result<PostDTO> createPost(
+    public Result<PostFacadeResponse> createPost(
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody CreatePostRequest request) {
         validatePostRequest(request);
@@ -56,20 +58,17 @@ public class PostFacadeController {
                 request.getVideoUrl()
         );
 
-        enrichPostDTO(postDTO);
-        return Result.success(postDTO);
+        PostFacadeResponse response = enrichPostDTO(postDTO, userId);
+        return Result.success(response);
     }
 
     @GetMapping("/{id}")
-    public Result<PostDTO> getPostById(
+    public Result<PostFacadeResponse> getPostById(
             @PathVariable("id") Long id,
             @RequestHeader(value = "X-User-Id", required = false) Long userId) {
         PostDTO postDTO = postService.getPostById(id);
-        enrichPostDTO(postDTO);
-        if (userId != null) {
-            enrichPostDTOWithLikeStatus(postDTO, userId);
-        }
-        return Result.success(postDTO);
+        PostFacadeResponse response = enrichPostDTO(postDTO, userId);
+        return Result.success(response);
     }
 
     @DeleteMapping("/{id}")
@@ -81,50 +80,65 @@ public class PostFacadeController {
     }
 
     @GetMapping("/user/{userId}")
-    public Result<PageResult<PostDTO>> getUserPosts(
+    public Result<PageResultFacadeResponse<PostFacadeResponse>> getUserPosts(
             @PathVariable("userId") Long userId,
             @RequestParam(name = "page", defaultValue = "1") Integer page,
             @RequestParam(name = "size", defaultValue = "10") Integer size,
             @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
         PageResult<PostDTO> pageResult = postService.getUserPosts(userId, page, size);
-        for (PostDTO postDTO : pageResult.getRecords()) {
-            enrichPostDTO(postDTO);
-            if (currentUserId != null) {
-                enrichPostDTOWithLikeStatus(postDTO, currentUserId);
-            }
-        }
-        return Result.success(pageResult);
+
+        List<PostFacadeResponse> enrichedPosts = pageResult.getRecords().stream()
+                .map(post -> enrichPostDTO(post, currentUserId))
+                .toList();
+
+        PageResultFacadeResponse<PostFacadeResponse> response = PageResultFacadeResponse.of(
+                enrichedPosts,
+                pageResult.getTotal(),
+                pageResult.getPage(),
+                pageResult.getSize()
+        );
+        return Result.success(response);
     }
 
     @GetMapping("/feed")
-    public Result<PageResult<PostDTO>> getFeed(
+    public Result<PageResultFacadeResponse<PostFacadeResponse>> getFeed(
             @RequestParam(name = "page", defaultValue = "1") Integer page,
             @RequestParam(name = "size", defaultValue = "10") Integer size,
             @RequestHeader(value = "X-User-Id", required = false) Long userId) {
         PageResult<PostDTO> pageResult = postService.getFeed(page, size);
-        for (PostDTO postDTO : pageResult.getRecords()) {
-            enrichPostDTO(postDTO);
-            if (userId != null) {
-                enrichPostDTOWithLikeStatus(postDTO, userId);
-            }
-        }
-        return Result.success(pageResult);
+
+        List<PostFacadeResponse> enrichedPosts = pageResult.getRecords().stream()
+                .map(post -> enrichPostDTO(post, userId))
+                .toList();
+
+        PageResultFacadeResponse<PostFacadeResponse> response = PageResultFacadeResponse.of(
+                enrichedPosts,
+                pageResult.getTotal(),
+                pageResult.getPage(),
+                pageResult.getSize()
+        );
+        return Result.success(response);
     }
 
     @GetMapping("/search")
-    public Result<PageResult<PostDTO>> searchPosts(
+    public Result<PageResultFacadeResponse<PostFacadeResponse>> searchPosts(
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "page", defaultValue = "1") Integer page,
             @RequestParam(name = "size", defaultValue = "10") Integer size,
             @RequestHeader(value = "X-User-Id", required = false) Long userId) {
         PageResult<PostDTO> pageResult = postService.searchPosts(keyword, page, size);
-        for (PostDTO postDTO : pageResult.getRecords()) {
-            enrichPostDTO(postDTO);
-            if (userId != null) {
-                enrichPostDTOWithLikeStatus(postDTO, userId);
-            }
-        }
-        return Result.success(pageResult);
+
+        List<PostFacadeResponse> enrichedPosts = pageResult.getRecords().stream()
+                .map(post -> enrichPostDTO(post, userId))
+                .toList();
+
+        PageResultFacadeResponse<PostFacadeResponse> response = PageResultFacadeResponse.of(
+                enrichedPosts,
+                pageResult.getTotal(),
+                pageResult.getPage(),
+                pageResult.getSize()
+        );
+        return Result.success(response);
     }
 
     private void validatePostRequest(CreatePostRequest request) {
@@ -143,27 +157,28 @@ public class PostFacadeController {
         }
     }
 
-    private void enrichPostDTO(PostDTO postDTO) {
+    private PostFacadeResponse enrichPostDTO(PostDTO postDTO, Long currentUserId) {
+        String username = "未知用户";
+        String userAvatar = "";
+        Boolean isLiked = false;
+
         try {
             UserDTO userDTO = userService.getUserById(postDTO.getUserId());
-            postDTO.setUsername(userDTO.getUsername());
-            postDTO.setUserAvatar(userDTO.getAvatar());
+            username = userDTO.getUsername() != null ? userDTO.getUsername() : "未知用户";
+            userAvatar = userDTO.getAvatar() != null ? userDTO.getAvatar() : "";
         } catch (Exception e) {
-            postDTO.setUsername("未知用户");
-            postDTO.setUserAvatar("");
+            // Use defaults
         }
-    }
 
-    private void enrichPostDTOWithLikeStatus(PostDTO postDTO, Long userId) {
-        if (userId == null) {
-            postDTO.setIsLiked(false);
-            return;
+        if (currentUserId != null) {
+            try {
+                LikeStatusDTO likeStatus = interactionService.getLikeStatus(postDTO.getId(), currentUserId);
+                isLiked = likeStatus.getLiked();
+            } catch (Exception e) {
+                isLiked = false;
+            }
         }
-        try {
-            LikeStatusDTO likeStatus = interactionService.getLikeStatus(postDTO.getId(), userId);
-            postDTO.setIsLiked(likeStatus.getLiked());
-        } catch (Exception e) {
-            postDTO.setIsLiked(false);
-        }
+
+        return PostFacadeResponse.fromPostDTO(postDTO, username, userAvatar, isLiked);
     }
 }

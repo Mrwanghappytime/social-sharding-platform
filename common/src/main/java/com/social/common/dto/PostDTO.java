@@ -9,22 +9,22 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 纯净的帖子DTO - 只包含自己业务主体的数据
+ * 禁止包含: username, userAvatar, isLiked, mediaFiles (这些由facade层负责enrichment)
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostDTO implements Serializable {
     private Long id;
     private Long userId;
-    private String username;
-    private String userAvatar;
     private String title;
     private String content;
     private PostType type;
     private Integer likeCount;
     private Integer commentCount;
-    private List<FileDTO> mediaFiles;
     private List<String> imageUrls;
     private String videoUrl;
-    private Boolean isLiked;
     private LocalDateTime createdAt;
 }

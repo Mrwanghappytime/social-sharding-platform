@@ -1,31 +1,25 @@
 package com.social.relation.service;
 
-import com.social.common.api.NotificationService;
 import com.social.common.api.RelationService;
-import com.social.common.api.UserService;
 import com.social.common.dto.RelationCountDTO;
 import com.social.common.dto.UserRelationDTO;
 import com.social.common.entity.Follower;
 import com.social.common.entity.Following;
-import com.social.common.enums.NotificationType;
 import com.social.common.exception.BusinessException;
 import com.social.common.exception.ErrorCode;
 import com.social.common.repository.FollowerRepository;
 import com.social.common.repository.FollowingRepository;
 import com.social.relation.util.TableShardingUtil;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
-@DubboService(version = "1.0.0")
+@DubboService(interfaceClass = RelationService.class, version = "1.0.0")
 public class RelationServiceImpl implements RelationService {
 
     @Autowired
@@ -34,25 +28,12 @@ public class RelationServiceImpl implements RelationService {
     @Autowired
     private FollowerRepository followerRepository;
 
-    @DubboReference(version = "1.0.0", check = false)
-    private UserService userService;
-
-    @DubboReference(version = "1.0.0", check = false)
-    private NotificationService notificationService;
-
     @Override
     @Transactional
     public void follow(Long followerId, Long followingId) {
         if (followerId.equals(followingId)) {
             throw new BusinessException(ErrorCode.CANNOT_FOLLOW_SELF, "不能关注自己");
         }
-
-        if (!userService.isUserExists(followingId)) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND, "用户不存在");
-        }
-
-        int followingTableIndex = TableShardingUtil.getFollowingTableIndex(followerId);
-        int followersTableIndex = TableShardingUtil.getFollowersTableIndex(followingId);
 
         Optional<Following> existing = followingRepository.findByFollowerIdAndFollowingId(followerId, followingId);
         if (existing.isPresent()) {
@@ -68,9 +49,6 @@ public class RelationServiceImpl implements RelationService {
         follower.setFollowerId(followerId);
         follower.setFollowingId(followingId);
         followerRepository.save(follower);
-
-        // Send follow notification
-        notificationService.sendNotification(followingId, NotificationType.FOLLOW, followerId, followingId, "USER");
     }
 
     @Override
@@ -95,17 +73,9 @@ public class RelationServiceImpl implements RelationService {
                 .map(f -> {
                     UserRelationDTO dto = new UserRelationDTO();
                     dto.setUserId(f.getFollowingId());
-                    try {
-                        var user = userService.getUserById(f.getFollowingId());
-                        dto.setUsername(user.getUsername());
-                        dto.setAvatar(user.getAvatar());
-                    } catch (Exception e) {
-                        dto.setUsername("unknown");
-                        dto.setAvatar("");
-                    }
                     return dto;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -116,17 +86,9 @@ public class RelationServiceImpl implements RelationService {
                 .map(f -> {
                     UserRelationDTO dto = new UserRelationDTO();
                     dto.setUserId(f.getFollowerId());
-                    try {
-                        var user = userService.getUserById(f.getFollowerId());
-                        dto.setUsername(user.getUsername());
-                        dto.setAvatar(user.getAvatar());
-                    } catch (Exception e) {
-                        dto.setUsername("unknown");
-                        dto.setAvatar("");
-                    }
                     return dto;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
