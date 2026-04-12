@@ -1,0 +1,63 @@
+# Maven
+# target/ 目录需要保留，不能排除（JAR 文件需要复制到镜像）
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Node (if any)
+node_modules/
+
+# Docker
+docker/
+
+# Temp
+*.tmp
+*.bak
+*.swp
+.DS_Store
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Embedded Nacos
+nacos-embedded/
+
+# SQL
+sql/*.sql
+
+# Scripts (not needed in image)
+scripts/
+*.bat
+*.sh
+
+# OpenSpec
+openspec/

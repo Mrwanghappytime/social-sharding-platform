@@ -45,7 +45,7 @@ jpa:
 
 file:
   storage:
-    path: G:/claude-project/csdn-wanghaof/data/files
+    path: /data/files
   allowed:
     image-types: jpg,jpeg,png,gif,webp
     video-types: mp4,mov,avi,webm

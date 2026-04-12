@@ -1,0 +1,16 @@
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openjdk:21
+
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo 'Asia/Shanghai' > /etc/timezone
+
+RUN mkdir -p /app
+COPY target/*.jar /app/app.jar
+
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+
+# file-service 端口
+EXPOSE 8086
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+
+# 运行时需要挂载：-v /data/files:/data/files
