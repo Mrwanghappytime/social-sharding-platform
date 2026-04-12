@@ -5,7 +5,7 @@
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="ch.qos.logback.classic.PatternLayout">
                 <!-- Unified log format: [serviceName[IP:PORT]][timestamp][traceId][threadId][level] message (class:method:line) -->
-                <pattern>[${SERVICE_NAME:-unknown}[${SERVICE_IP:-127.0.0.1}:${SERVER_PORT:-8080}]][%d{yyyy-MM-dd HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg (%logger{36}.%method:%line)</pattern>
+                <pattern>[${SERVICE_NAME:-unknown}[${SERVICE_IP:-127.0.0.1}:${SERVER_PORT:-8080}]][%d{yyyy-MM-dd HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg (%logger{36}.%method:%line)%n</pattern>
             </layout>
         </encoder>
     </appender>
@@ -22,7 +22,7 @@
         </rollingPolicy>
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="ch.qos.logback.classic.PatternLayout">
-                <pattern>[${SERVICE_NAME:-unknown}[${SERVICE_IP:-127.0.0.1}:${SERVER_PORT:-8080}]][%d{yyyy-MM-dd HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg (%logger{36}.%method:%line)</pattern>
+                <pattern>[${SERVICE_NAME:-unknown}[${SERVICE_IP:-127.0.0.1}:${SERVER_PORT:-8080}]][%d{yyyy-MM-dd HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg (%logger{36}.%method:%line)%n</pattern>
             </layout>
         </encoder>
         <prudent>false</prudent>
@@ -42,7 +42,7 @@
     </root>
 
     <!-- Application loggers -->
-    <logger name="com.social" level="DEBUG" additivity="false">
+    <logger name="com.social" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>

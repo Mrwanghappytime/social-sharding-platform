@@ -6,7 +6,7 @@
     <springProperty scope="context" name="LOG_PATH" source="logging.log-path" defaultValue="logs"/>
 
     <!-- Unified log format: [serviceName[IP:PORT]][timestamp][traceId][threadId][level] message (class:method:line) -->
-    <property name="LOG_PATTERN" value="[${SERVICE_NAME}[${SERVICE_IP}:${SERVER_PORT}]][%d{yyyy-MM-dd HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg (%logger{36}.%method:%line)"/>
+    <property name="LOG_PATTERN" value="[${SERVICE_NAME}[${SERVICE_IP}:${SERVER_PORT}]][%d{HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg%nopex%caller{1}"/>
 
     <!-- Console appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -65,24 +65,24 @@
     <!-- Default profile -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR_FILE"/>
     </root>
-    <logger name="com.social" level="DEBUG" additivity="false">
+    <logger name="com.social" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR_FILE"/>
     </logger>
 
     <springProfile name="dev">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
         </root>
-        <logger name="com.social" level="DEBUG" additivity="false">
+        <logger name="com.social" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="ASYNC_FILE"/>
+            <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
         </logger>
     </springProfile>
