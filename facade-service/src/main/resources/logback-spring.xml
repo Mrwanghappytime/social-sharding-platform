@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <springProperty scope="context" name="SERVICE_NAME" source="service.name" defaultValue="file-service"/>
+    <springProperty scope="context" name="SERVICE_NAME" source="service.name" defaultValue="facade-service"/>
     <springProperty scope="context" name="SERVICE_IP" source="service.ip" defaultValue="127.0.0.1"/>
-    <springProperty scope="context" name="SERVER_PORT" source="service.port" defaultValue="8086"/>
+    <springProperty scope="context" name="SERVER_PORT" source="service.port" defaultValue="8087"/>
     <springProperty scope="context" name="LOG_PATH" source="logging.log-path" defaultValue="logs"/>
 
     <!-- Unified log format: [serviceName[IP:PORT]][timestamp][traceId][threadId][level] message (class:method:line) -->

@@ -57,7 +57,7 @@ set S8=facade-service|8087|facade-service|5012
 for %%S in (S1 S2 S3 S4 S5 S6 S7 S8) do (
     for /f "tokens=1-4 delims=|" %%N in ('echo !%%S!') do (
         echo   Starting %%N on port %%O (debug: %%P)...
-        cd /d "%PROJECT_DIR%\%%M"
+        cd /d "%PROJECT_DIR%\%%Q"
         start "%%N" cmd /c "set MAVEN_OPTS=%JVM_OPTS% -agentlib:jdwp=transport=dt_socket^,server=y^,suspend=n^,address=%%P && mvn spring-boot:run > ""%PROJECT_DIR%\logs\%%N.log"" 2>&1"
     )
 )

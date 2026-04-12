@@ -30,6 +30,11 @@ dubbo:
     address: nacos://localhost:8848
   scan:
     base-packages: com.social.interaction
+  consumer:
+    check: false
+    filter: dubboTraceFilter
+  provider:
+    filter: dubboTraceFilter
 
 jpa:
   hibernate:
@@ -43,3 +48,15 @@ jpa:
 jwt:
   secret: social-sharing-platform-secret-key-change-in-production
   expiration: 86400000
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: INFO
+    com.social.interaction: DEBUG
+  log-path: ${LOG_PATH:logs}
+
+service:
+  name: interaction-service
+  ip: ${HOST_IP:127.0.0.1}
+  port: 8083

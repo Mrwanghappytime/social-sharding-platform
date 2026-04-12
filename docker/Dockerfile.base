@@ -1,0 +1,31 @@
+# ============================================
+# Social Platform - Base Dockerfile Template
+# ============================================
+# 使用说明：
+#   各服务 Dockerfile 基于此模板构建
+#   构建命令：docker build -f Dockerfile.{service} -t image-name .
+#
+# 运行时（示例）：
+#   docker run --network host --name service-name image-name
+# ============================================
+
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openjdk:21
+
+# 设置时区
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo 'Asia/Shanghai' > /etc/timezone
+
+# 创建应用目录
+RUN mkdir -p /app
+
+# 复制 JAR 文件
+COPY target/*.jar /app/app.jar
+
+# 设置 JVM 参数（可根据需要调整）
+ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+
+# 暴露端口（各服务按需覆盖）
+EXPOSE 8080
+
+# 启动命令
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
