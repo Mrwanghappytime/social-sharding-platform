@@ -50,12 +50,15 @@ Docker 部署后，后端服务提供的能力**不得有差别**。以下测试
 
 | 用例ID | 接口 | 验证点 |
 |--------|------|--------|
-| R-01 | POST /api/relations/follow/{id} | 关注成功 |
-| R-02 | DELETE /api/relations/unfollow/{id} | 取关成功 |
-| R-03 | GET /api/relations/following/{id} | 获取关注列表正常 |
-| R-04 | GET /api/relations/followers/{id} | 获取粉丝列表正常 |
-| R-05 | GET /api/relations/counts/{id} | 获取关系计数正常 |
-| R-06 | GET /api/relations/status/{id} | 验证关注状态正常 |
+| R-01 | POST /api/relations/follow/{userId} | 关注成功 |
+| R-02 | DELETE /api/relations/follow/{userId} | 取关成功 |
+| R-03 | GET /api/relations/following/{userId}?page=1&size=10 | 获取关注列表（分页） |
+| R-04 | GET /api/relations/followers/{userId}?page=1&size=10 | 获取粉丝列表（分页） |
+| R-05 | GET /api/relations/counts/{userId} | 获取关系计数正常 |
+| R-06 | GET /api/relations/is-following/{userId} | 验证是否关注正常 |
+| R-07 | POST /api/relations/follow/{userId} (重复) | 重复关注返回错误 |
+| R-08 | DELETE /api/relations/follow/{userId} (未关注) | 取消未关注返回错误 |
+| R-09 | GET /api/relations/following/{userId} | 返回 followingCount, followersCount, isFollowing 字段 |
 
 ### 1.5 通知服务 (notification-service)
 
@@ -134,7 +137,7 @@ Docker 部署后，后端服务提供的能力**不得有差别**。以下测试
 | 1.1 用户服务 | 5 |
 | 1.2 帖子服务 | 6 |
 | 1.3 互动服务 | 6 |
-| 1.4 关系服务 | 6 |
+| 1.4 关系服务 | 9 |
 | 1.5 通知服务 | 3 |
 | 1.6 文件服务 | 2 |
 | 2.1 Facade 层编排 | 5 |
@@ -142,7 +145,7 @@ Docker 部署后，后端服务提供的能力**不得有差别**。以下测试
 | 2.3 Nacos 注册发现 | 2 |
 | 3. 日志系统 | 7 |
 | 4. 文件持久化 | 3 |
-| **总计** | **48** |
+| **总计** | **51** |
 
 ---
 
@@ -150,6 +153,31 @@ Docker 部署后，后端服务提供的能力**不得有差别**。以下测试
 
 | 日期 | 执行人 | 通过数 | 失败数 | 备注 |
 |------|--------|--------|--------|------|
-| | | | | |
-| | | | | |
-| | | | | |
+| 2026-04-15 | Claude | 12/12 | 0 | 关系服务详细测试（userA/userB），包括关注/取关/分页/数量/isFollowing/错误处理 |
+
+---
+
+## 附录：关系服务详细测试记录 (2026-04-15)
+
+**测试用户：**
+- userA (ID=18)
+- userB (ID=19)
+
+### 测试用例详情
+
+| 用例编号 | 测试项 | 结果 |
+|----------|--------|------|
+| TC-R01 | UserA 关注 UserB | ✓ 通过 |
+| TC-R02 | 获取关注列表（分页） | ✓ 通过，包含 followingCount、followersCount、isFollowing |
+| TC-R03 | 获取粉丝列表（分页） | ✓ 通过 |
+| TC-R04 | 获取数量统计 | ✓ 通过，从数量表读取 |
+| TC-R05 | UserB 关注 UserA（双向） | ✓ 通过 |
+| TC-R06 | 取消关注 | ✓ 通过 |
+| TC-R07 | 取消关注后数量更新 | ✓ 通过 |
+| TC-R08 | isFollowing 判断 | ✓ 通过 |
+| TC-R09 | 重复关注报错 | ✓ 通过 |
+| TC-R10 | 取消未关注用户报错 | ✓ 通过 |
+| TC-R11 | 取消关注不存在的用户报错 | ✓ 通过 |
+| TC-R12 | 空列表返回 | ✓ 通过 |
+
+**详细测试报告：** `docs/test-baseline-relation-api-20260415.md`

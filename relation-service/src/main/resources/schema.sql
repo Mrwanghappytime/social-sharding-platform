@@ -421,3 +421,16 @@ CREATE TABLE IF NOT EXISTS `followers_15` (
     INDEX `idx_following_id` (`following_id`),
     UNIQUE INDEX `idx_follower_following` (`follower_id`, `following_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- User relation count table (denormalized for performance)
+-- Stores following_count and follower_count for each user
+CREATE TABLE IF NOT EXISTS `user_relation_count` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `following_count` BIGINT DEFAULT 0,
+    `follower_count` BIGINT DEFAULT 0,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

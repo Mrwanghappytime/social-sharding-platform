@@ -44,6 +44,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getUserById } from '@/api/user'
+import { getRelationCounts } from '@/api/relation'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
@@ -67,8 +68,21 @@ const loadUser = async () => {
   }
 }
 
-onMounted(() => {
-  loadUser()
+const loadRelationCounts = async () => {
+  try {
+    const res = await getRelationCounts(userId.value)
+    if (user.value && res.data) {
+      user.value.followingCount = res.data.followingCount
+      user.value.followersCount = res.data.followerCount
+    }
+  } catch (error) {
+    console.error('Failed to load relation counts:', error)
+  }
+}
+
+onMounted(async () => {
+  await loadUser()
+  await loadRelationCounts()
 })
 </script>
 

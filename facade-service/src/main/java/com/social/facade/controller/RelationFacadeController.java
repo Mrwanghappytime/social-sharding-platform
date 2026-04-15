@@ -3,6 +3,7 @@ package com.social.facade.controller;
 import com.social.common.api.NotificationService;
 import com.social.common.api.RelationService;
 import com.social.common.api.UserService;
+import com.social.common.dto.PageResult;
 import com.social.common.dto.RelationCountDTO;
 import com.social.common.dto.Result;
 import com.social.common.dto.UserDTO;
@@ -13,6 +14,8 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/relations")
@@ -64,7 +67,7 @@ public class RelationFacadeController {
     public Result<List<UserRelationFacadeResponse>> getMyFollowingList(
             @RequestHeader("X-User-Id") Long currentUserId) {
         List<UserRelationDTO> relations = relationService.getFollowingList(currentUserId);
-        List<UserRelationFacadeResponse> enriched = enrichRelationList(relations);
+        List<UserRelationFacadeResponse> enriched = enrichRelationList(currentUserId, relations);
         return Result.success(enriched);
     }
 
@@ -72,22 +75,42 @@ public class RelationFacadeController {
     public Result<List<UserRelationFacadeResponse>> getMyFollowersList(
             @RequestHeader("X-User-Id") Long currentUserId) {
         List<UserRelationDTO> relations = relationService.getFollowersList(currentUserId);
-        List<UserRelationFacadeResponse> enriched = enrichRelationList(relations);
+        List<UserRelationFacadeResponse> enriched = enrichRelationList(currentUserId, relations);
         return Result.success(enriched);
     }
 
     @GetMapping("/following/{userId}")
-    public Result<List<UserRelationFacadeResponse>> getFollowingList(@PathVariable(name = "userId") Long userId) {
-        List<UserRelationDTO> relations = relationService.getFollowingList(userId);
-        List<UserRelationFacadeResponse> enriched = enrichRelationList(relations);
-        return Result.success(enriched);
+    public Result<PageResult<UserRelationFacadeResponse>> getFollowingList(
+            @PathVariable(name = "userId") Long userId,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+        PageResult<UserRelationDTO> pagedRelations = relationService.getFollowingListPaged(userId, page, size);
+        List<UserRelationFacadeResponse> enriched = enrichRelationListWithCounts(currentUserId, pagedRelations.getRecords());
+        PageResult<UserRelationFacadeResponse> result = PageResult.of(
+                enriched,
+                pagedRelations.getTotal(),
+                pagedRelations.getPage(),
+                pagedRelations.getSize()
+        );
+        return Result.success(result);
     }
 
     @GetMapping("/followers/{userId}")
-    public Result<List<UserRelationFacadeResponse>> getFollowersList(@PathVariable(name = "userId") Long userId) {
-        List<UserRelationDTO> relations = relationService.getFollowersList(userId);
-        List<UserRelationFacadeResponse> enriched = enrichRelationList(relations);
-        return Result.success(enriched);
+    public Result<PageResult<UserRelationFacadeResponse>> getFollowersList(
+            @PathVariable(name = "userId") Long userId,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestHeader(value = "X-User-Id", required = false) Long currentUserId) {
+        PageResult<UserRelationDTO> pagedRelations = relationService.getFollowersListPaged(userId, page, size);
+        List<UserRelationFacadeResponse> enriched = enrichRelationListWithCounts(currentUserId, pagedRelations.getRecords());
+        PageResult<UserRelationFacadeResponse> result = PageResult.of(
+                enriched,
+                pagedRelations.getTotal(),
+                pagedRelations.getPage(),
+                pagedRelations.getSize()
+        );
+        return Result.success(result);
     }
 
     @GetMapping("/counts/{userId}")
@@ -102,20 +125,43 @@ public class RelationFacadeController {
         return Result.success(relationService.isFollowing(currentUserId, userId));
     }
 
-    private List<UserRelationFacadeResponse> enrichRelationList(List<UserRelationDTO> relations) {
+    private List<UserRelationFacadeResponse> enrichRelationList(Long currentUserId, List<UserRelationDTO> relations) {
+        if (relations.isEmpty()) {
+            return List.of();
+        }
+
+        // Batch query isFollowing for all users in the list
+        List<Long> userIds = relations.stream().map(UserRelationDTO::getUserId).collect(Collectors.toList());
+        Map<Long, Boolean> isFollowingMap = currentUserId != null
+                ? relationService.areFollowing(currentUserId, userIds)
+                : Map.of();
+
         return relations.stream()
                 .map(relation -> {
                     String username = "未知用户";
                     String avatar = "";
+                    RelationCountDTO counts = new RelationCountDTO(0L, 0L);
                     try {
                         UserDTO user = userService.getUserById(relation.getUserId());
                         username = user.getUsername() != null ? user.getUsername() : "未知用户";
                         avatar = user.getAvatar() != null ? user.getAvatar() : "";
+                        counts = relationService.getRelationCounts(relation.getUserId());
                     } catch (Exception e) {
                         // Use defaults
                     }
-                    return UserRelationFacadeResponse.of(relation.getUserId(), username, avatar);
+                    return UserRelationFacadeResponse.of(
+                            relation.getUserId(),
+                            username,
+                            avatar,
+                            counts.getFollowingCount(),
+                            counts.getFollowerCount(),
+                            isFollowingMap.getOrDefault(relation.getUserId(), false)
+                    );
                 })
                 .toList();
+    }
+
+    private List<UserRelationFacadeResponse> enrichRelationListWithCounts(Long currentUserId, List<UserRelationDTO> relations) {
+        return enrichRelationList(currentUserId, relations);
     }
 }

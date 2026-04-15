@@ -36,7 +36,7 @@ const loadFollowers = async () => {
   loading.value = true
   try {
     const res = await getFollowers(userId)
-    users.value = res.data || []
+    users.value = res.data?.records || []
   } catch (error) {
     console.error('Failed to load followers:', error)
   } finally {

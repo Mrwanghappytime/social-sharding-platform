@@ -5,7 +5,8 @@ export enum PostType {
 }
 
 export interface User {
-  id: number
+  id?: number
+  userId?: number
   username: string
   avatar?: string
   bio?: string
@@ -13,6 +14,7 @@ export interface User {
   followersCount?: number
   postsCount?: number
   createTime?: string
+  isFollowing?: boolean
 }
 
 export interface Post {

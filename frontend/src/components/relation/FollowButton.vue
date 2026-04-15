@@ -11,33 +11,41 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRelationStore } from '@/stores/relation'
+import { checkIsFollowing, followUser, unfollowUser } from '@/api/relation'
 
 const props = defineProps<{
   userId: number
 }>()
 
-const relationStore = useRelationStore()
 const loading = ref(false)
+const isFollowingState = ref(false)
 
-const isFollowing = computed(() => relationStore.isFollowing(props.userId))
+const isFollowing = computed(() => isFollowingState.value)
 
 const toggleFollow = async () => {
   loading.value = true
   try {
     if (isFollowing.value) {
-      await relationStore.unfollow(props.userId)
+      await unfollowUser(props.userId)
+      isFollowingState.value = false
     } else {
-      await relationStore.follow(props.userId)
+      await followUser(props.userId)
+      isFollowingState.value = true
     }
+  } catch (error) {
+    console.error('Failed to toggle follow:', error)
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  // Check if already following
-  relationStore.fetchFollowing
+onMounted(async () => {
+  try {
+    const res = await checkIsFollowing(props.userId)
+    isFollowingState.value = res.data || false
+  } catch (error) {
+    console.error('Failed to check following status:', error)
+  }
 })
 </script>
 

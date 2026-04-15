@@ -11,11 +11,21 @@ export const unfollowUser = (userId: number) => {
 }
 
 // 获取关注列表
-export const getFollowing = (userId: number) => {
-  return request.get('/relations/following', { params: { userId } })
+export const getFollowing = (userId: number, page = 1, size = 20) => {
+  return request.get(`/relations/following/${userId}`, { params: { page, size } })
 }
 
 // 获取粉丝列表
-export const getFollowers = (userId: number) => {
-  return request.get('/relations/followers', { params: { userId } })
+export const getFollowers = (userId: number, page = 1, size = 20) => {
+  return request.get(`/relations/followers/${userId}`, { params: { page, size } })
+}
+
+// 检查是否关注某个用户
+export const checkIsFollowing = (userId: number) => {
+  return request.get(`/relations/is-following/${userId}`)
+}
+
+// 获取用户关注/粉丝数量
+export const getRelationCounts = (userId: number) => {
+  return request.get(`/relations/counts/${userId}`)
 }

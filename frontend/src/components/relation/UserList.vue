@@ -2,9 +2,9 @@
   <div class="user-list">
     <div
       v-for="user in users"
-      :key="user.id"
+      :key="user.userId"
       class="user-item"
-      @click="$router.push(`/user/${user.id}`)"
+      @click="$router.push(`/user/${user.userId}`)"
     >
       <UserAvatar :user="user" :size="50" />
       <div class="user-info">
@@ -15,7 +15,7 @@
           <span>粉丝 {{ user.followersCount || 0 }}</span>
         </div>
       </div>
-      <FollowButton :userId="user.id" />
+      <FollowButton :userId="user.userId" />
     </div>
 
     <div v-if="loading" class="loading">
