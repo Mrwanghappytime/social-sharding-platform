@@ -31,4 +31,6 @@ public interface PostService {
     PageResult<PostDTO> getFeed(Integer page, Integer size);
 
     PageResult<PostDTO> searchPosts(String keyword, Integer page, Integer size);
+
+    Long getPostCount(Long userId);
 }

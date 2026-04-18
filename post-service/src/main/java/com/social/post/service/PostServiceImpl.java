@@ -7,9 +7,11 @@ import com.social.common.api.PostService;
 import com.social.common.dto.PostDTO;
 import com.social.common.dto.PageResult;
 import com.social.common.entity.Post;
+import com.social.common.entity.UserPostCount;
 import com.social.common.exception.BusinessException;
 import com.social.common.exception.ErrorCode;
 import com.social.common.repository.PostRepository;
+import com.social.common.repository.UserPostCountRepository;
 import com.social.common.util.LogUtil;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,9 @@ public class PostServiceImpl implements PostService {
 
     @Autowired
     private PostRepository postRepository;
+
+    @Autowired
+    private UserPostCountRepository userPostCountRepository;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -158,6 +163,8 @@ public class PostServiceImpl implements PostService {
             post.setVideoUrl(videoUrl);
             Post savedPost = postRepository.save(post);
 
+            incrementPostCount(userId);
+
             redisTemplate.delete(USER_POSTS_KEY + userId);
             redisTemplate.delete("post:feed");
 
@@ -182,7 +189,9 @@ public class PostServiceImpl implements PostService {
                 throw new BusinessException(ErrorCode.FORBIDDEN, "无权限删除此动态");
             }
 
+            Long postOwnerId = post.getUserId();
             postRepository.deleteById(postId);
+            decrementPostCount(postOwnerId);
 
             redisTemplate.delete(POST_CACHE_KEY + postId);
             redisTemplate.delete(USER_POSTS_KEY + userId);
@@ -259,6 +268,47 @@ public class PostServiceImpl implements PostService {
             log.error("!!! searchPosts ERROR | keyword={} | error={}", keyword, e.getMessage());
             throw e;
         }
+    }
+
+    @Override
+    public Long getPostCount(Long userId) {
+        log.debug(">>> getPostCount ENTER | userId={}", userId);
+        try {
+            return userPostCountRepository.findById(userId)
+                    .map(UserPostCount::getPostCount)
+                    .orElse(0L);
+        } catch (Exception e) {
+            log.error("!!! getPostCount ERROR | userId={} | error={}", userId, e.getMessage());
+            throw e;
+        }
+    }
+
+    private void incrementPostCount(Long userId) {
+        log.debug(">>> incrementPostCount ENTER | userId={}", userId);
+        userPostCountRepository.findById(userId)
+                .ifPresentOrElse(
+                        count -> {
+                            count.setPostCount(count.getPostCount() + 1);
+                            userPostCountRepository.save(count);
+                        },
+                        () -> {
+                            UserPostCount newCount = new UserPostCount();
+                            newCount.setUserId(userId);
+                            newCount.setPostCount(1L);
+                            userPostCountRepository.save(newCount);
+                        }
+                );
+        log.debug("<<< incrementPostCount EXIT | userId={}", userId);
+    }
+
+    private void decrementPostCount(Long userId) {
+        log.debug(">>> decrementPostCount ENTER | userId={}", userId);
+        userPostCountRepository.findById(userId)
+                .ifPresent(count -> {
+                    count.setPostCount(Math.max(0, count.getPostCount() - 1));
+                    userPostCountRepository.save(count);
+                });
+        log.debug("<<< decrementPostCount EXIT | userId={}", userId);
     }
 
     private PostDTO toPostDTO(Post post) {

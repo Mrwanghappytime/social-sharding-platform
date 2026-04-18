@@ -1,6 +1,7 @@
 package com.social.facade.controller;
 
 import com.social.common.api.NotificationService;
+import com.social.common.api.PostService;
 import com.social.common.api.RelationService;
 import com.social.common.api.UserService;
 import com.social.common.dto.PageResult;
@@ -29,6 +30,9 @@ public class RelationFacadeController {
 
     @DubboReference(version = "1.0.0")
     private NotificationService notificationService;
+
+    @DubboReference(version = "1.0.0")
+    private PostService postService;
 
     @PostMapping("/follow/{userId}")
     public Result<Void> follow(
@@ -115,7 +119,10 @@ public class RelationFacadeController {
 
     @GetMapping("/counts/{userId}")
     public Result<RelationCountDTO> getRelationCounts(@PathVariable(name = "userId") Long userId) {
-        return Result.success(relationService.getRelationCounts(userId));
+        RelationCountDTO counts = relationService.getRelationCounts(userId);
+        Long postsCount = postService.getPostCount(userId);
+        counts.setPostsCount(postsCount);
+        return Result.success(counts);
     }
 
     @GetMapping("/is-following/{userId}")

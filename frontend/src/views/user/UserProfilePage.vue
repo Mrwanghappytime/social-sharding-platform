@@ -74,6 +74,7 @@ const loadRelationCounts = async () => {
     if (user.value && res.data) {
       user.value.followingCount = res.data.followingCount
       user.value.followersCount = res.data.followerCount
+      user.value.postsCount = res.data.postsCount
     }
   } catch (error) {
     console.error('Failed to load relation counts:', error)

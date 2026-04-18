@@ -12,4 +12,11 @@ import java.io.Serializable;
 public class RelationCountDTO implements Serializable {
     private Long followingCount;
     private Long followerCount;
+    private Long postsCount;
+
+    public RelationCountDTO(Long followingCount, Long followerCount) {
+        this.followingCount = followingCount;
+        this.followerCount = followerCount;
+        this.postsCount = 0L;
+    }
 }
