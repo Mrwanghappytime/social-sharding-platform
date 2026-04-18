@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getUserById } from '@/api/user'
@@ -80,9 +80,17 @@ const loadRelationCounts = async () => {
   }
 }
 
-onMounted(async () => {
+const loadAll = async () => {
   await loadUser()
   await loadRelationCounts()
+}
+
+onMounted(async () => {
+  await loadAll()
+})
+
+watch(() => route.params.id, async () => {
+  await loadAll()
 })
 </script>
 

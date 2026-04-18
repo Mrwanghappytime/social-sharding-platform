@@ -34,3 +34,7 @@ nacos-embedded/
 
 # Data files
 data/
+
+# Frontend test results
+frontend/test-results/
+frontend/playwright-report/

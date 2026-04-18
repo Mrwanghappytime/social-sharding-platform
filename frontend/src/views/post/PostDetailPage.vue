@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { PostType } from '@/types'
 import { useAuthStore } from '@/stores/auth'
@@ -98,6 +98,11 @@ const deleteComment = (commentId: number) => {
   // TODO: implement delete comment
 }
 
+const loadPostAndComments = async () => {
+  await postStore.fetchPostById(postId.value)
+  await loadComments()
+}
+
 const loadComments = async () => {
   try {
     const res = await getComments(postId.value)
@@ -108,8 +113,11 @@ const loadComments = async () => {
 }
 
 onMounted(async () => {
-  await postStore.fetchPostById(postId.value)
-  await loadComments()
+  await loadPostAndComments()
+})
+
+watch(() => route.params.id, async () => {
+  await loadPostAndComments()
 })
 </script>
 

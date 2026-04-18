@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePostStore } from '@/stores/post'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -56,12 +56,20 @@ const handleSearch = async () => {
   posts.value = postStore.posts
 }
 
-onMounted(() => {
+const loadFromQuery = () => {
   const k = route.query.keyword as string
   if (k) {
     keyword.value = k
     handleSearch()
   }
+}
+
+onMounted(() => {
+  loadFromQuery()
+})
+
+watch(() => route.query.keyword, () => {
+  loadFromQuery()
 })
 </script>
 

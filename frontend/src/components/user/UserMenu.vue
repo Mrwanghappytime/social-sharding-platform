@@ -24,15 +24,26 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserAvatar from './UserAvatar.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const userInfo = computed(() => authStore.userInfo)
 
+const redirectToLogin = () => {
+  router.push({ name: 'Login', query: { redirect: route.fullPath } })
+}
+
 const handleCommand = (command: string) => {
+  if (!authStore.isLoggedIn()) {
+    if (command === 'logout') return
+    redirectToLogin()
+    return
+  }
+
   switch (command) {
     case 'profile':
       if (userInfo.value) {

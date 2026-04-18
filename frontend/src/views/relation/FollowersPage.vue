@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getFollowers } from '@/api/relation'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -28,14 +28,14 @@ import UserList from '@/components/relation/UserList.vue'
 import type { User } from '@/types'
 
 const route = useRoute()
-const userId = Number(route.params.id)
+const userId = ref(Number(route.params.id))
 const users = ref<User[]>([])
 const loading = ref(false)
 
 const loadFollowers = async () => {
   loading.value = true
   try {
-    const res = await getFollowers(userId)
+    const res = await getFollowers(userId.value)
     users.value = res.data?.records || []
   } catch (error) {
     console.error('Failed to load followers:', error)
@@ -45,6 +45,11 @@ const loadFollowers = async () => {
 }
 
 onMounted(() => {
+  loadFollowers()
+})
+
+watch(() => route.params.id, (newId) => {
+  userId.value = Number(newId)
   loadFollowers()
 })
 </script>

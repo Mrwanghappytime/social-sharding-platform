@@ -15,7 +15,9 @@
           <span>粉丝 {{ user.followersCount || 0 }}</span>
         </div>
       </div>
-      <FollowButton :userId="user.userId" />
+      <div @click.stop>
+        <FollowButton :userId="user.userId" />
+      </div>
     </div>
 
     <div v-if="loading" class="loading">

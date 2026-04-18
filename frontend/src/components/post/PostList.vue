@@ -40,15 +40,23 @@ const posts = ref<Post[]>([])
 const loading = ref(false)
 const hasMore = ref(true)
 const listRef = ref<HTMLElement>()
+const currentUserId = ref<number | undefined>(undefined)
 
-const loadMore = async () => {
-  if (loading.value || !hasMore.value) return
+const loadMore = async (reset = false) => {
+  if (loading.value) return
+  if (!reset && !hasMore.value) return
+
   loading.value = true
   try {
+    if (reset) {
+      posts.value = []
+      hasMore.value = true
+    }
+
     if (props.userId) {
-      await postStore.fetchUserPosts(props.userId)
+      await postStore.fetchUserPosts(props.userId, reset)
     } else {
-      await postStore.fetchFeed()
+      await postStore.fetchFeed(reset)
     }
     posts.value = postStore.posts
     hasMore.value = postStore.hasMore
@@ -78,11 +86,15 @@ const handleComment = (post: Post) => {
 }
 
 onMounted(() => {
-  loadMore()
+  currentUserId.value = props.userId
+  loadMore(true)
 })
 
-watch(() => props.userId, () => {
-  loadMore()
+watch(() => props.userId, (newUserId) => {
+  if (newUserId !== currentUserId.value) {
+    currentUserId.value = newUserId
+    loadMore(true)
+  }
 })
 </script>
 
