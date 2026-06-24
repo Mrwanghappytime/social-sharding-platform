@@ -5,7 +5,7 @@
         v-for="(img, index) in displayImages"
         :key="index"
         class="media-item image-item"
-        @click.stop="preview(index)"}‌numerusformלת =functions.Edit encom  (json) ….,
+        @click.stop="preview(index)"
       >
         <img :src="img" alt="" />
         <div v-if="index === 8 && images.length > 9" class="more-overlay">
@@ -28,10 +28,25 @@
         v-for="(video, index) in videos"
         :key="index"
         class="media-item video-item"
-        @click="playVideo(video)"
+        @click.stop
       >
-        <video :src="video"></video>
-        <div class="play-icon">▶</div>
+        <video
+          :ref="el => setVideoRef(el, index)"
+          :src="video"
+          :controls="playingVideoIndex === index"
+          preload="metadata"
+          @pause="handleVideoPause(index)"
+          @ended="handleVideoPause(index)"
+        ></video>
+        <button
+          v-if="playingVideoIndex !== index"
+          class="play-icon"
+          type="button"
+          aria-label="播放视频"
+          @click.stop="playVideo(index)"
+        >
+          ▶
+        </button>
       </div>
     </template>
   </div>
@@ -47,6 +62,8 @@ const props = defineProps<{
 
 const showViewer = ref(false)
 const previewIndex = ref(0)
+const playingVideoIndex = ref<number | null>(null)
+const videoRefs = ref<HTMLVideoElement[]>([])
 
 const displayImages = computed(() => {
   if (!props.images) return []
@@ -62,10 +79,38 @@ const closePreview = () => {
   showViewer.value = false
 }
 
-const playVideo = (video: string) => {
-  // TODO: implement video player
-  console.log('Play video:', video)
+const setVideoRef = (el: Element | null, index: number) => {
+  if (el instanceof HTMLVideoElement) {
+    videoRefs.value[index] = el
+  }
 }
+
+const playVideo = async (index: number) => {
+  const currentVideo = videoRefs.value[index]
+  if (!currentVideo) return
+
+  videoRefs.value.forEach((video, videoIndex) => {
+    if (videoIndex !== index && !video.paused) {
+      video.pause()
+    }
+  })
+
+  playingVideoIndex.value = index
+
+  try {
+    await currentVideo.play()
+  } catch (error) {
+    console.error('Failed to play video:', error)
+    playingVideoIndex.value = null
+  }
+}
+
+const handleVideoPause = (index: number) => {
+  if (playingVideoIndex.value === index) {
+    playingVideoIndex.value = null
+  }
+}
+
 </script>
 
 <style scoped lang="scss">
@@ -102,11 +147,19 @@ const playVideo = (video: string) => {
   img, video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     transition: transform 0.2s;
   }
 
-  &:hover img, &:hover video {
+  img {
+    object-fit: cover;
+  }
+
+  video {
+    object-fit: contain;
+    background: #000;
+  }
+
+  &:hover img {
     transform: scale(1.02);
   }
 
@@ -118,6 +171,7 @@ const playVideo = (video: string) => {
       transform: translate(-50%, -50%);
       width: 48px;
       height: 48px;
+      border: 0;
       background: rgba(0, 0, 0, 0.5);
       border-radius: 50%;
       display: flex;
@@ -125,7 +179,9 @@ const playVideo = (video: string) => {
       justify-content: center;
       color: #fff;
       font-size: 18px;
+      cursor: pointer;
       transition: all 0.2s;
+      z-index: 1;
     }
 
     &:hover .play-icon {
