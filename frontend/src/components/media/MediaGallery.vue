@@ -5,7 +5,7 @@
         v-for="(img, index) in displayImages"
         :key="index"
         class="media-item image-item"
-        @click="preview(index)"
+        @click.stop="preview(index)"}‌numerusformלת =functions.Edit encom  (json) ….,
       >
         <img :src="img" alt="" />
         <div v-if="index === 8 && images.length > 9" class="more-overlay">
@@ -13,12 +13,14 @@
         </div>
       </div>
 
-      <el-image-viewer
-        v-if="showViewer"
-        :url-list="images"
-        :initial-index="previewIndex"
-        @close="closePreview"
-      />
+      <teleport to="body">
+        <el-image-viewer
+          v-if="showViewer"
+          :url-list="images"
+          :initial-index="previewIndex"
+          @close="closePreview"
+        />
+      </teleport>
     </template>
 
     <template v-if="videos?.length">
