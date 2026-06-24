@@ -28,6 +28,14 @@ spring:
             - Path=/files/**
           filters:
             - StripPrefix=0
+
+        # WebSocket route - 通过 Nacos 负载均衡到 notification-service 集群
+        - id: notification-websocket
+          uri: lb:ws://notification-service
+          predicates:
+            - Path=/ws/notify
+          filters:
+            - StripPrefix=0
   nacos:
     discovery:
       enabled: true
@@ -48,6 +56,16 @@ dubbo:
     check: false
   provider:
     timeout: 5000
+
+# Actuator endpoints (用于运维和路由验证)
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: gateway,health,info
 
 # Logging Configuration
 logging:

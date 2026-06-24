@@ -33,6 +33,18 @@
             <artifactId>nacos-client</artifactId>
         </dependency>
 
+        <!-- Spring Cloud Alibaba Nacos Discovery (注册 HTTP 端点到 Nacos) -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud LoadBalancer (Gateway lb:ws:// 路由依赖) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

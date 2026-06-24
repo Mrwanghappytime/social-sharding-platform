@@ -7,6 +7,8 @@
 
     <!-- Unified log format: [serviceName[IP:PORT]][timestamp][traceId][threadId][level] message (class:method:line) -->
     <property name="LOG_PATTERN" value="[${SERVICE_NAME}[${SERVICE_IP}:${SERVER_PORT}]][%d{HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg%nopex%caller{1}"/>
+    <!-- Error pattern: 包含完整异常堆栈，仅用于 ERROR_FILE -->
+    <property name="ERROR_LOG_PATTERN" value="[${SERVICE_NAME}[${SERVICE_IP}:${SERVER_PORT}]][%d{HH:mm:ss.SSS}][%X{traceId:-}][%t][%-5level] %msg%n%ex%caller{1}"/>
 
     <!-- Console appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -42,7 +44,7 @@
             <onMismatch>DENY</onMismatch>
         </filter>
         <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
+            <pattern>${ERROR_LOG_PATTERN}</pattern>
             <charset>UTF-8</charset>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">

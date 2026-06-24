@@ -12,6 +12,13 @@
           +{{ images.length - 9 }}
         </div>
       </div>
+
+      <el-image-viewer
+        v-if="showViewer"
+        :url-list="images"
+        :initial-index="previewIndex"
+        @close="closePreview"
+      />
     </template>
 
     <template v-if="videos?.length">
@@ -29,12 +36,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
   images?: string[]
   videos?: string[]
 }>()
+
+const showViewer = ref(false)
+const previewIndex = ref(0)
 
 const displayImages = computed(() => {
   if (!props.images) return []
@@ -42,8 +52,12 @@ const displayImages = computed(() => {
 })
 
 const preview = (index: number) => {
-  // TODO: implement image preview
-  console.log('Preview image:', index)
+  previewIndex.value = index
+  showViewer.value = true
+}
+
+const closePreview = () => {
+  showViewer.value = false
 }
 
 const playVideo = (video: string) => {

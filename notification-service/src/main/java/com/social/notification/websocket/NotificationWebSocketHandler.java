@@ -59,12 +59,18 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         log.info("WebSocket connected for user: {}", userId);
 
         // Subscribe to Redis notification channel for this user
-        subscribeToNotifications(userId);
-
-        // Send connection success message
-//        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(
-//            Map.of("type", "connected", "userId", userId)
-//        )));
+        try {
+            subscribeToNotifications(userId);
+        } catch (Throwable t) {
+            log.error("subscribeToNotifications failed for userId={} type={} msg={}",
+                    userId, t.getClass().getName(), t.getMessage());
+            for (StackTraceElement el : t.getStackTrace()) {
+                log.error("    at {}.{}({}:{})",
+                        el.getClassName(), el.getMethodName(), el.getFileName(), el.getLineNumber());
+                if (el.getClassName().startsWith("com.social")) break;
+            }
+            throw t;
+        }
     }
 
     @Override
@@ -95,7 +101,26 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        log.error("WebSocket transport error for session {}: {}", session.getId(), exception.getMessage());
+        // 打印完整堆栈，方便排查 WebSocket 协议异常
+        log.error("WebSocket transport error for session {}: type={} msg={}",
+                session.getId(),
+                exception.getClass().getName(),
+                exception.getMessage());
+        // 手动遍历 cause 链
+        Throwable cause = exception;
+        int depth = 0;
+        while (cause != null && depth < 10) {
+            log.error("  caused by[{}]: {} - {}", depth, cause.getClass().getName(), cause.getMessage());
+            for (StackTraceElement el : cause.getStackTrace()) {
+                if (el.getClassName().startsWith("com.social") ||
+                    el.getClassName().startsWith("org.springframework.web.socket") ||
+                    el.getClassName().startsWith("org.apache.tomcat.websocket")) {
+                    log.error("    at {}.{}({}:{})", el.getClassName(), el.getMethodName(), el.getFileName(), el.getLineNumber());
+                }
+            }
+            cause = cause.getCause();
+            depth++;
+        }
         afterConnectionClosed(session, CloseStatus.SERVER_ERROR);
     }
 
@@ -134,6 +159,19 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     }
 
     private Long getUserIdFromSession(WebSocketSession session) {
+        // 1. 优先从 Gateway 注入的 X-User-Id header 读取（生产路径：通过 Gateway）
+        String headerUserId = session.getHandshakeHeaders().getFirst("X-User-Id");
+        if (headerUserId != null && !headerUserId.isEmpty()) {
+            try {
+                Long userId = Long.parseLong(headerUserId);
+                log.debug("UserId resolved from X-User-Id header: {}", userId);
+                return userId;
+            } catch (NumberFormatException e) {
+                log.warn("Invalid X-User-Id header value: {}", headerUserId);
+            }
+        }
+
+        // 2. fallback: 从 query string 解析 token（直连场景，便于本地调试）
         String token = extractToken(session);
         if (token == null) {
             return null;
@@ -146,7 +184,9 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return claims.get("userId", Long.class);
+            Long userId = claims.get("userId", Long.class);
+            log.debug("UserId resolved from query token: {}", userId);
+            return userId;
         } catch (Exception e) {
             log.warn("Failed to parse JWT from WebSocket session: {}", e.getMessage());
             return null;

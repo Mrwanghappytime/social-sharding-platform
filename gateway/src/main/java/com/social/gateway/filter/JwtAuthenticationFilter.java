@@ -67,11 +67,24 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .header(TRACE_ID_HEADER, finalTraceId)
                 .build();
 
+        // 1. 优先从 Authorization header 提取 token
         String authHeader = modifiedRequest.getHeaders().getFirst(AUTHORIZATION_HEADER);
+        String token = null;
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+            token = authHeader.substring(BEARER_PREFIX.length());
+        }
+
+        // 2. fallback: 从 query string 提取 token（WebSocket 场景，浏览器 WebSocket API 不支持自定义 header）
+        if (token == null) {
+            String queryToken = request.getQueryParams().getFirst("token");
+            if (queryToken != null && !queryToken.isEmpty()) {
+                token = queryToken;
+                log.debug("[{}] Token extracted from query string", finalTraceId);
+            }
+        }
 
         // Parse token if present (even on whitelisted routes for user info)
-        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-            String token = authHeader.substring(BEARER_PREFIX.length());
+        if (token != null) {
             try {
                 Claims claims = validateToken(token);
                 Long userId = claims.get("userId", Long.class);
@@ -86,6 +99,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             } catch (Exception e) {
+                log.warn("[{}] Token validation failed: {}", finalTraceId, e.getMessage());
                 // Token invalid/expired - for whitelisted paths, continue without user info
                 // For non-whitelisted paths, this will be caught below
             }
@@ -97,11 +111,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
         }
 
-        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+        if (token == null) {
             return unauthorized(exchange.getResponse(), "Missing or invalid Authorization header");
         }
 
-        // This shouldn't be reached, but kept as safety net
         return unauthorized(exchange.getResponse(), "Invalid or expired token");
     }
 
