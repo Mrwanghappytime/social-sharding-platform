@@ -48,7 +48,7 @@ const handleFileChange = async (e: Event) => {
       break
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 50 * 1024 * 1024) {
       ElMessage.error('图片大小不能超过10MB')
       continue
     }
