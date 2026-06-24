@@ -28,6 +28,7 @@
         v-for="(video, index) in videos"
         :key="index"
         class="media-item video-item"
+        :style="videoItemStyle(index)"
         @click.stop
       >
         <video
@@ -35,6 +36,7 @@
           :src="video"
           :controls="playingVideoIndex === index"
           preload="metadata"
+          @loadedmetadata="handleVideoMetadata(index)"
           @pause="handleVideoPause(index)"
           @ended="handleVideoPause(index)"
         ></video>
@@ -64,6 +66,7 @@ const showViewer = ref(false)
 const previewIndex = ref(0)
 const playingVideoIndex = ref<number | null>(null)
 const videoRefs = ref<HTMLVideoElement[]>([])
+const videoRatios = ref<Record<number, string>>({})
 
 const displayImages = computed(() => {
   if (!props.images) return []
@@ -84,6 +87,20 @@ const setVideoRef = (el: Element | null, index: number) => {
     videoRefs.value[index] = el
   }
 }
+
+const handleVideoMetadata = (index: number) => {
+  const video = videoRefs.value[index]
+  if (!video?.videoWidth || !video?.videoHeight) return
+
+  videoRatios.value = {
+    ...videoRatios.value,
+    [index]: `${video.videoWidth} / ${video.videoHeight}`
+  }
+}
+
+const videoItemStyle = (index: number) => ({
+  aspectRatio: videoRatios.value[index] || '16 / 9'
+})
 
 const playVideo = async (index: number) => {
   const currentVideo = videoRefs.value[index]
@@ -155,7 +172,7 @@ const handleVideoPause = (index: number) => {
   }
 
   video {
-    object-fit: contain;
+    object-fit: cover;
     background: #000;
   }
 
