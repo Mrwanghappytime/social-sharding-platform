@@ -16,6 +16,8 @@
             :key="item.id"
             :notification="item"
             @click="handleClick(item)"
+            @actor-click="handleActorClick(item)"
+            @target-click="handleTargetClick(item)"
           />
 
           <div v-if="notifications.length === 0 && !loading" class="empty">
@@ -78,6 +80,7 @@ const fetchNotifications = async (page: number = 1) => {
         actorAvatar: n.actorAvatar,
         targetId: n.targetId,
         targetType: n.targetType,
+        targetTitle: n.targetTitle,
         isRead: n.isRead,
         createdAt: n.createdAt
       }))
@@ -105,14 +108,30 @@ const markAllRead = async () => {
   }
 }
 
-const handleClick = (item: any) => {
+const markRead = (item: any) => {
   const userId = authStore.userInfo?.id
   if (userId) {
     notificationStore.markAsRead(item.id, userId)
   }
+}
+
+const handleClick = (item: any) => {
+  markRead(item)
   if (item.targetType === 'POST' && item.targetId) {
     router.push(`/post/${item.targetId}`)
+    return
   }
+  if (item.targetType === 'USER' && item.actorId) {
+    router.push(`/user/${item.actorId}`)
+  }
+}
+
+const handleActorClick = (item: any) => {
+  markRead(item)
+}
+
+const handleTargetClick = (item: any) => {
+  markRead(item)
 }
 
 const handlePageChange = (page: number) => {

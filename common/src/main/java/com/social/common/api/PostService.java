@@ -10,6 +10,8 @@ public interface PostService {
 
     PostDTO getPostById(Long postId);
 
+    List<PostDTO> getPostsByIds(List<Long> postIds);
+
     boolean isPostExists(Long postId);
 
     Long getUserIdByPostId(Long postId);

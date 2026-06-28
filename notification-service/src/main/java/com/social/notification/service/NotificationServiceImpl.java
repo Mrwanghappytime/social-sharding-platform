@@ -100,6 +100,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    @Override
     public void markAsRead(Long id, Long recipientId) {
         log.debug(">>> markAsRead ENTER | id={} | recipientId={}", id, recipientId);
         notificationRepository.findById(id).ifPresent(notification -> {
@@ -109,6 +110,7 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("<<< markAsRead EXIT | id={} | recipientId={} | traceId={}", id, recipientId, LogUtil.getTraceId());
     }
 
+    @Override
     public void markAllAsRead(Long recipientId) {
         log.debug(">>> markAllAsRead ENTER | recipientId={}", recipientId);
         List<Notification> unreadNotifications = notificationRepository.findUnreadByRecipientId(recipientId);
@@ -119,6 +121,7 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("<<< markAllAsRead EXIT | recipientId={} | count={} | traceId={}", recipientId, unreadNotifications.size(), LogUtil.getTraceId());
     }
 
+    @Override
     public Long getUnreadCount(Long recipientId) {
         log.debug(">>> getUnreadCount ENTER | recipientId={}", recipientId);
         Long count = notificationRepository.countUnreadByRecipientId(recipientId);

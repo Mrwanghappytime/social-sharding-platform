@@ -66,11 +66,12 @@ export interface Comment {
 export interface Notification {
   id: number
   type: string
-  content: string
-  fromUserId: number
-  fromUsername: string
-  fromUserAvatar?: string
-  postId?: number
-  read: boolean
-  createTime: string
+  actorId: number
+  actorUsername?: string
+  actorAvatar?: string
+  targetId: number
+  targetType: string
+  targetTitle?: string
+  isRead: boolean
+  createdAt?: string
 }

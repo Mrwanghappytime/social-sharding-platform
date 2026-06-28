@@ -1,11 +1,31 @@
 <template>
   <div class="notification-item" :class="{ unread: !notification.isRead }" @click="$emit('click')">
-    <UserAvatar :user="{ avatar: notification.actorAvatar, username: notification.actorUsername }" :size="44" />
+    <router-link
+      :to="`/user/${notification.actorId}`"
+      class="avatar-link"
+      @click.stop="$emit('actor-click')"
+    >
+      <UserAvatar :user="{ avatar: notification.actorAvatar, username: notification.actorUsername }" :size="44" />
+    </router-link>
     <div class="notification-content">
       <p class="text">
-        <span class="username">{{ notification.actorUsername || '未知用户' }}</span>
+        <router-link
+          :to="`/user/${notification.actorId}`"
+          class="username"
+          @click.stop="$emit('actor-click')"
+        >
+          {{ notification.actorUsername || '未知用户' }}
+        </router-link>
         {{ getActionText() }}
       </p>
+      <router-link
+        v-if="showTargetPost"
+        :to="`/post/${notification.targetId}`"
+        class="target-post"
+        @click.stop="$emit('target-click')"
+      >
+        {{ targetPostText }}
+      </router-link>
       <span class="time">{{ formatTime(notification.createdAt || '') }}</span>
     </div>
     <span v-if="!notification.isRead" class="unread-dot"></span>
@@ -13,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Notification } from '@/stores/notification'
 import UserAvatar from '@/components/user/UserAvatar.vue'
 
@@ -20,7 +41,16 @@ const props = defineProps<{
   notification: Notification
 }>()
 
-defineEmits(['click'])
+defineEmits(['click', 'actor-click', 'target-click'])
+
+const showTargetPost = computed(() => {
+  return props.notification.targetType === 'POST' && !!props.notification.targetId
+})
+
+const targetPostText = computed(() => {
+  const title = props.notification.targetTitle || '查看动态'
+  return `「${title}」`
+})
 
 const getActionText = () => {
   switch (props.notification.type) {
@@ -77,8 +107,14 @@ const formatTime = (time: string) => {
   }
 }
 
+.avatar-link {
+  display: flex;
+  text-decoration: none;
+}
+
 .notification-content {
   flex: 1;
+  min-width: 0;
 
   .text {
     font-size: 14px;
@@ -88,6 +124,29 @@ const formatTime = (time: string) => {
 
     .username {
       font-weight: 600;
+      color: #333;
+      text-decoration: none;
+
+      &:hover {
+        color: #4CAF82;
+      }
+    }
+  }
+
+  .target-post {
+    display: block;
+    max-width: 100%;
+    margin-bottom: 4px;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.4;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      color: #4CAF82;
     }
   }
 
@@ -102,5 +161,6 @@ const formatTime = (time: string) => {
   height: 8px;
   background: #4CAF82;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 </style>

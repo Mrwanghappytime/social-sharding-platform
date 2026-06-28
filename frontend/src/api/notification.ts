@@ -4,8 +4,11 @@ export interface Notification {
   id: number
   type: string
   actorId: number
+  actorUsername?: string
+  actorAvatar?: string
   targetId: number
   targetType: string
+  targetTitle?: string
   isRead: boolean
   createdAt: string
 }

@@ -63,6 +63,24 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public List<PostDTO> getPostsByIds(List<Long> postIds) {
+        log.debug(">>> getPostsByIds ENTER | count={}", postIds != null ? postIds.size() : 0);
+        if (postIds == null || postIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            List<PostDTO> result = postRepository.findAllById(postIds).stream()
+                    .map(this::toPostDTO)
+                    .collect(Collectors.toList());
+            log.debug("<<< getPostsByIds EXIT | count={} | traceId={}", result.size(), LogUtil.getTraceId());
+            return result;
+        } catch (Exception e) {
+            log.error("!!! getPostsByIds ERROR | count={} | error={}", postIds.size(), e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
     public boolean isPostExists(Long postId) {
         log.debug(">>> isPostExists ENTER | postId={}", postId);
         boolean result = postRepository.existsById(postId);
