@@ -17,6 +17,12 @@ spring:
       database: 0
   jpa:
     open-in-view: false
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
   main:
     allow-bean-definition-overriding: true
 
@@ -37,15 +43,6 @@ dubbo:
   provider:
     filter: dubboTraceFilter
 
-jpa:
-  hibernate:
-    ddl-auto: update
-  show-sql: true
-  properties:
-    hibernate:
-      format_sql: true
-      dialect: org.hibernate.dialect.MySQLDialect
-
 jwt:
   secret: social-sharing-platform-secret-key-change-in-production
   expiration: 86400000
@@ -54,7 +51,7 @@ logging:
   config: classpath:logback-spring.xml
   level:
     root: INFO
-    com.social.relation: DEBUG
+    com.social.relation: INFO
   log-path: ${LOG_PATH:logs}
 
 service:

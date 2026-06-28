@@ -117,42 +117,104 @@ start_service() {
 
 # 显示帮助
 show_help() {
-    echo "Usage: $0 [command]"
+    echo "Usage: $0 [command] [service]"
+    echo ""
+    echo "管理所有或单个微服务的 Docker 容器"
     echo ""
     echo "Commands:"
-    echo "  start     启动所有服务"
-    echo "  stop      停止所有服务"
-    echo "  restart   重启所有服务"
-    echo "  logs      查看所有服务日志"
-    echo "  status    查看服务状态"
-    echo "  cleanup   清理所有容器"
-    echo "  help      显示帮助"
+    echo "  start [service]    启动所有服务或单个服务"
+    echo "  stop [service]     停止所有服务或单个服务"
+    echo "  restart [service]  重启所有服务或单个服务"
+    echo "  logs [service]     查看所有服务或单个服务的日志"
+    echo "  status [service]   查看服务状态"
+    echo "  cleanup [service]  清理所有容器或单个容器"
+    echo "  help               显示帮助"
+    echo ""
+    echo "服务列表:"
+    for service in "${!SERVICES[@]}"; do
+        local PORT="${SERVICES[$service]%%:*}"
+        echo "  $service (端口: $PORT)"
+    done
     echo ""
     echo "示例:"
-    echo "  $0 start     # 启动所有服务"
-    echo "  $0 logs      # 查看日志"
-    echo "  $0 stop      # 停止所有服务"
+    echo "  $0 start              # 启动所有服务"
+    echo "  $0 start gateway      # 仅启动 gateway 服务"
+    echo "  $0 logs user-service  # 查看 user-service 的日志"
+    echo "  $0 status             # 查看所有服务状态"
+}
+
+# 检查服务是否有效
+is_valid_service() {
+    local service=$1
+    for s in "${!SERVICES[@]}"; do
+        if [ "$s" = "$service" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 清理单个容器
+cleanup_service() {
+    local SERVICE=$1
+    local CONTAINER_NAME="${SERVICE}"
+    if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        docker stop "$CONTAINER_NAME" 2>/dev/null || true
+        docker rm "$CONTAINER_NAME" 2>/dev/null || true
+        echo "  已清理: $CONTAINER_NAME"
+    fi
+}
+
+# 查看单个服务日志
+show_service_logs() {
+    local SERVICE=$1
+    echo -e "${YELLOW}==> $SERVICE 日志${NC}"
+    docker logs "$SERVICE" 2>&1 | tail -20
+    echo ""
+}
+
+# 查看单个服务状态
+show_service_status() {
+    local SERVICE=$1
+    local PORT="${SERVICES[$SERVICE]%%:*}"
+    local STATUS=$(docker ps --filter "name=$SERVICE" --format "{{.Status}}" 2>/dev/null || echo "未运行")
+    printf "%-25s %-15s %s\n" "$SERVICE" "$STATUS" "$PORT"
+}
+
+# 停止单个服务
+stop_service() {
+    local SERVICE=$1
+    docker stop "$SERVICE" 2>/dev/null || true
+    echo "  已停止: $SERVICE"
 }
 
 # 查看日志
 show_logs() {
-    for SERVICE in "${!SERVICES[@]}"; do
-        echo -e "${YELLOW}==> $SERVICE 日志${NC}"
-        docker logs "$SERVICE" 2>&1 | tail -20
-        echo ""
-    done
+    if [ $# -eq 0 ]; then
+        for SERVICE in "${!SERVICES[@]}"; do
+            echo -e "${YELLOW}==> $SERVICE 日志${NC}"
+            docker logs "$SERVICE" 2>&1 | tail -20
+            echo ""
+        done
+    else
+        show_service_logs "$1"
+    fi
 }
 
 # 查看状态
 show_status() {
-    echo "服务状态："
-    printf "%-25s %-15s %s\n" "服务名" "状态" "端口"
-    echo "------------------------------------------------"
-    for SERVICE in "${!SERVICES[@]}"; do
-        local PORT="${SERVICES[$SERVICE]%%:*}"
-        local STATUS=$(docker ps --filter "name=$SERVICE" --format "{{.Status}}" 2>/dev/null || echo "未运行")
-        printf "%-25s %-15s %s\n" "$SERVICE" "$STATUS" "$PORT"
-    done
+    if [ $# -eq 0 ]; then
+        echo "服务状态："
+        printf "%-25s %-15s %s\n" "服务名" "状态" "端口"
+        echo "------------------------------------------------"
+        for SERVICE in "${!SERVICES[@]}"; do
+            local PORT="${SERVICES[$SERVICE]%%:*}"
+            local STATUS=$(docker ps --filter "name=$SERVICE" --format "{{.Status}}" 2>/dev/null || echo "未运行")
+            printf "%-25s %-15s %s\n" "$SERVICE" "$STATUS" "$PORT"
+        done
+    else
+        show_service_status "$1"
+    fi
 }
 
 # 停止所有服务
@@ -164,37 +226,124 @@ stop_all() {
     done
 }
 
-# 主逻辑
-case "${1:-start}" in
-    start)
-        cleanup
-        echo_step "启动所有服务..."
+# 清理所有容器
+cleanup() {
+    echo_step "清理已存在的容器..."
+    if [ $# -eq 0 ]; then
         for SERVICE in "${!SERVICES[@]}"; do
+            cleanup_service "$SERVICE"
+        done
+    else
+        cleanup_service "$1"
+    fi
+}
+
+# 主逻辑
+if [ $# -eq 0 ]; then
+    # 默认启动所有服务
+    set -- "start"
+fi
+
+case "${1}" in
+    start)
+        if [ $# -eq 1 ]; then
+            # 启动所有服务
+            cleanup
+            echo_step "启动所有服务..."
+            for SERVICE in "${!SERVICES[@]}"; do
+                PORT="${SERVICES[$SERVICE]%%:*}"
+                IMAGE="${SERVICES[$SERVICE]#*:}"
+                start_service "$SERVICE" "$PORT" "$IMAGE" || exit 1
+            done
+            echo ""
+            echo_success "所有服务启动完成！"
+            echo ""
+            show_status
+        elif is_valid_service "${2}"; then
+            # 启动单个服务
+            SERVICE="${2}"
+            cleanup_service "$SERVICE"
+            echo_step "启动 $SERVICE 服务..."
             PORT="${SERVICES[$SERVICE]%%:*}"
             IMAGE="${SERVICES[$SERVICE]#*:}"
             start_service "$SERVICE" "$PORT" "$IMAGE" || exit 1
-        done
-        echo ""
-        echo_success "所有服务启动完成！"
-        echo ""
-        show_status
+            echo ""
+            echo_success "$SERVICE 服务启动完成！"
+            echo ""
+            show_service_status "$SERVICE"
+        else
+            echo_error "无效的服务名称: ${2}"
+            show_help
+            exit 1
+        fi
         ;;
     stop)
-        stop_all
+        if [ $# -eq 1 ]; then
+            stop_all
+        elif is_valid_service "${2}"; then
+            echo_step "停止 ${2} 服务..."
+            stop_service "${2}"
+            echo_success "${2} 服务已停止"
+        else
+            echo_error "无效的服务名称: ${2}"
+            show_help
+            exit 1
+        fi
         ;;
     restart)
-        stop_all
-        echo ""
-        $0 start
+        if [ $# -eq 1 ]; then
+            stop_all
+            echo ""
+            $0 start
+        elif is_valid_service "${2}"; then
+            echo_step "重启 ${2} 服务..."
+            stop_service "${2}"
+            cleanup_service "${2}"
+            PORT="${SERVICES[${2}]%%:*}"
+            IMAGE="${SERVICES[${2}]#*:}"
+            start_service "${2}" "$PORT" "$IMAGE" || exit 1
+            echo_success "${2} 服务重启完成！"
+            show_service_status "${2}"
+        else
+            echo_error "无效的服务名称: ${2}"
+            show_help
+            exit 1
+        fi
         ;;
     logs)
-        show_logs
+        if [ $# -eq 1 ]; then
+            show_logs
+        elif is_valid_service "${2}"; then
+            show_service_logs "${2}"
+        else
+            echo_error "无效的服务名称: ${2}"
+            show_help
+            exit 1
+        fi
         ;;
     status)
-        show_status
+        if [ $# -eq 1 ]; then
+            show_status
+        elif is_valid_service "${2}"; then
+            show_service_status "${2}"
+        else
+            echo_error "无效的服务名称: ${2}"
+            show_help
+            exit 1
+        fi
         ;;
     cleanup)
-        cleanup
+        if [ $# -eq 1 ]; then
+            cleanup
+        elif is_valid_service "${2}"; then
+            echo_step "清理 ${2} 容器..."
+            cleanup_service "${2}"
+            echo_success "${2} 容器清理完成"
+        else
+            echo_error "无效的服务名称: ${2}"
+            show_help
+            exit 1
+        fi
         ;;
     help|--help|-h)
         show_help

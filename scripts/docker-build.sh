@@ -3,8 +3,11 @@
 # ============================================
 # Social Platform - Docker Build Script
 # ============================================
-# 功能：构建所有微服务的 Docker 镜像
-# 使用：./scripts/docker-build.sh
+# 功能：构建所有或单个微服务的 Docker 镜像
+# 使用：./scripts/docker-build.sh [service]
+# 示例：
+#   ./scripts/docker-build.sh          # 构建所有服务
+#   ./scripts/docker-build.sh gateway  # 仅构建 gateway 服务
 # ============================================
 
 set -e
@@ -30,6 +33,55 @@ SERVICES=(
     "facade-service"
     "file-service"
 )
+
+# 显示帮助
+show_help() {
+    echo "Usage: $0 [service]"
+    echo ""
+    echo "构建所有或单个微服务的 Docker 镜像"
+    echo ""
+    echo "参数:"
+    echo "  service    可选，服务名称 (${SERVICES[*]})"
+    echo ""
+    echo "示例:"
+    echo "  $0              # 构建所有服务"
+    echo "  $0 gateway      # 仅构建 gateway 服务"
+    echo "  $0 help         # 显示帮助"
+    echo ""
+    echo "支持的服务:"
+    for service in "${SERVICES[@]}"; do
+        echo "  - $service"
+    done
+}
+
+# 检查服务是否有效
+is_valid_service() {
+    local service=$1
+    for s in "${SERVICES[@]}"; do
+        if [ "$s" = "$service" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 处理命令行参数
+TARGET_SERVICES=()
+if [ $# -eq 0 ]; then
+    # 无参数，构建所有服务
+    TARGET_SERVICES=("${SERVICES[@]}")
+elif [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    show_help
+    exit 0
+elif is_valid_service "$1"; then
+    # 单个有效服务
+    TARGET_SERVICES=("$1")
+else
+    echo_error "无效的服务名称: $1"
+    echo_error "支持的服务: ${SERVICES[*]}"
+    show_help
+    exit 1
+fi
 
 # 颜色定义
 RED='\033[0;31m'
@@ -74,15 +126,22 @@ cleanup_images() {
     fi
 }
 
-# 1. Maven 打包
-echo_step "Step 1: Maven 打包所有服务..."
-mvn clean package -DskipTests -q
+# Maven 打包
+if [ ${#TARGET_SERVICES[@]} -eq ${#SERVICES[@]} ]; then
+    echo_step "Step 1: Maven 打包所有服务..."
+    mvn clean package -DskipTests -q
+else
+    echo_step "Step 1: Maven 打包 ${TARGET_SERVICES[*]} 服务..."
+    for SERVICE in "${TARGET_SERVICES[@]}"; do
+        mvn clean package -pl "$SERVICE" -am -DskipTests -q
+    done
+fi
 echo_success "Maven 打包完成"
 
-# 2. 构建各服务镜像
+# 构建各服务镜像
 echo_step "Step 2: 构建 Docker 镜像..."
 
-for SERVICE in "${SERVICES[@]}"; do
+for SERVICE in "${TARGET_SERVICES[@]}"; do
     echo_step "Building ${SERVICE}..."
 
     # 镜像名称
@@ -107,7 +166,11 @@ for SERVICE in "${SERVICES[@]}"; do
     fi
 done
 
-echo_success "所有镜像构建完成！"
+if [ ${#TARGET_SERVICES[@]} -eq ${#SERVICES[@]} ]; then
+    echo_success "所有镜像构建完成！"
+else
+    echo_success "镜像构建完成！"
+fi
 
 # 3. 清理旧镜像
 echo ""
@@ -115,6 +178,6 @@ cleanup_images
 
 echo ""
 echo "镜像列表："
-for SERVICE in "${SERVICES[@]}"; do
+for SERVICE in "${TARGET_SERVICES[@]}"; do
     echo "  - ${REGISTRY}/${PROJECT_PREFIX}-${SERVICE}:latest"
 done
