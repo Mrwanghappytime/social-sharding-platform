@@ -73,11 +73,17 @@ const displayImages = computed(() => {
 })
 
 const displayVideos = computed(() => {
-  if (props.post.videoUrl) return [props.post.videoUrl]
+  if (props.post.videoUrl) {
+    return [{
+      url: props.post.videoUrl,
+      width: props.post.videoWidth,
+      height: props.post.videoHeight
+    }]
+  }
   if (props.post.mediaFiles?.length) {
     return props.post.mediaFiles
       .filter(f => f.type === 'VIDEO')
-      .map(f => f.url)
+      .map(f => ({ url: f.url, width: f.width, height: f.height }))
   }
   return []
 })

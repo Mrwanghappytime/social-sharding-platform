@@ -79,7 +79,9 @@ const form = reactive({
   content: '',
   type: PostType.TEXT,
   imageUrls: [] as string[],
-  videoUrl: ''
+  videoUrl: '',
+  videoWidth: 0,
+  videoHeight: 0
 })
 
 const rules = {
@@ -92,8 +94,10 @@ const handleImagesChange = (urls: string[]) => {
   form.imageUrls = urls
 }
 
-const handleVideoChange = (url: string) => {
-  form.videoUrl = url
+const handleVideoChange = (payload: { url: string; width: number; height: number }) => {
+  form.videoUrl = payload.url
+  form.videoWidth = payload.width || 0
+  form.videoHeight = payload.height || 0
 }
 
 const handleSubmit = async () => {
@@ -107,7 +111,9 @@ const handleSubmit = async () => {
       content: form.content,
       type: form.type,
       imageUrls: form.type === PostType.IMAGE ? form.imageUrls : undefined,
-      videoUrl: form.type === PostType.VIDEO ? form.videoUrl : undefined
+      videoUrl: form.type === PostType.VIDEO ? form.videoUrl : undefined,
+      videoWidth: form.type === PostType.VIDEO && form.videoWidth ? form.videoWidth : undefined,
+      videoHeight: form.type === PostType.VIDEO && form.videoHeight ? form.videoHeight : undefined
     })
     ElMessage.success('发布成功')
     router.push('/')

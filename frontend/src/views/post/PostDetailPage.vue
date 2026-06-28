@@ -24,7 +24,12 @@
             />
 
             <div v-if="(postStore.currentPost.type === PostType.VIDEO || postStore.currentPost.type === 'VIDEO') && postStore.currentPost.videoUrl" class="video-container">
-              <video :src="postStore.currentPost.videoUrl" controls></video>
+              <video
+                :src="postStore.currentPost.videoUrl"
+                :style="detailVideoStyle"
+                controls
+                preload="metadata"
+              ></video>
             </div>
           </div>
 
@@ -70,6 +75,15 @@ const postStore = usePostStore()
 const postId = computed(() => Number(route.params.id))
 const comments = ref<Comment[]>([])
 const isLoggedIn = computed(() => authStore.isLoggedIn())
+
+const detailVideoStyle = computed(() => {
+  const w = postStore.currentPost?.videoWidth
+  const h = postStore.currentPost?.videoHeight
+  if (w && h) {
+    return { aspectRatio: `${w} / ${h}` }
+  }
+  return { aspectRatio: '16 / 9' }
+})
 
 const formatTime = (time: string) => {
   return new Date(time).toLocaleDateString('zh-CN', {

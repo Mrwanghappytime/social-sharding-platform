@@ -26,5 +26,7 @@ public class PostDTO implements Serializable {
     private Integer commentCount;
     private List<String> imageUrls;
     private String videoUrl;
+    private Integer videoWidth;
+    private Integer videoHeight;
     private LocalDateTime createdAt;
 }

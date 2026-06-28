@@ -55,7 +55,9 @@ public class PostFacadeController {
                 request.getContent(),
                 request.getType(),
                 imageUrlsJson,
-                request.getVideoUrl()
+                request.getVideoUrl(),
+                request.getVideoWidth(),
+                request.getVideoHeight()
         );
 
         PostFacadeResponse response = enrichPostDTO(postDTO, userId);

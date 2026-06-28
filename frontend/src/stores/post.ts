@@ -52,7 +52,7 @@ export const usePostStore = defineStore('post', () => {
     }
   }
 
-  const create = async (data: { title: string; content: string; type: any; imageUrls?: string[]; videoUrl?: string }) => {
+  const create = async (data: { title: string; content: string; type: any; imageUrls?: string[]; videoUrl?: string; videoWidth?: number; videoHeight?: number }) => {
     const res = await createPost(data)
     return res.data || res
   }

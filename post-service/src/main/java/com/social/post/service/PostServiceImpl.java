@@ -152,7 +152,14 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public PostDTO createPost(Long userId, String title, String content, com.social.common.enums.PostType type, String imageUrls, String videoUrl) {
-        log.info(">>> createPost ENTER | userId={} | title={}", userId, title);
+        return createPost(userId, title, content, type, imageUrls, videoUrl, null, null);
+    }
+
+    @Override
+    @Transactional
+    public PostDTO createPost(Long userId, String title, String content, com.social.common.enums.PostType type,
+                              String imageUrls, String videoUrl, Integer videoWidth, Integer videoHeight) {
+        log.info(">>> createPost ENTER | userId={} | title={} | videoSize={}x{}", userId, title, videoWidth, videoHeight);
         try {
             Post post = new Post();
             post.setUserId(userId);
@@ -161,6 +168,8 @@ public class PostServiceImpl implements PostService {
             post.setType(type);
             post.setImageUrls(imageUrls);
             post.setVideoUrl(videoUrl);
+            post.setVideoWidth(videoWidth);
+            post.setVideoHeight(videoHeight);
             Post savedPost = postRepository.save(post);
 
             incrementPostCount(userId);
@@ -320,6 +329,8 @@ public class PostServiceImpl implements PostService {
         dto.setType(post.getType());
         dto.setCreatedAt(post.getCreatedAt());
         dto.setVideoUrl(post.getVideoUrl());
+        dto.setVideoWidth(post.getVideoWidth());
+        dto.setVideoHeight(post.getVideoHeight());
         dto.setLikeCount(post.getLikeCount() != null ? post.getLikeCount() : 0);
         dto.setCommentCount(post.getCommentCount() != null ? post.getCommentCount() : 0);
 

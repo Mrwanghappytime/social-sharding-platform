@@ -30,6 +30,12 @@ public class Post extends BaseEntity {
     @Column(name = "video_url", length = 500)
     private String videoUrl;
 
+    @Column(name = "video_width")
+    private Integer videoWidth;
+
+    @Column(name = "video_height")
+    private Integer videoHeight;
+
     @Column(name = "like_count")
     private Integer likeCount = 0;
 

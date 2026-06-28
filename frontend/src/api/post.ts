@@ -23,6 +23,8 @@ export const createPost = (data: {
   type: PostType
   imageUrls?: string[]
   videoUrl?: string
+  videoWidth?: number
+  videoHeight?: number
 }) => {
   return request.post('/posts', data)
 }

@@ -23,4 +23,10 @@ public class File extends BaseEntity {
 
     @Column(name = "sort_order")
     private Integer sortOrder = 0;
+
+    @Column(name = "width")
+    private Integer width;
+
+    @Column(name = "height")
+    private Integer height;
 }

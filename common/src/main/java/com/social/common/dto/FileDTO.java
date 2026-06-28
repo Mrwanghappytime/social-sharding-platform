@@ -9,4 +9,6 @@ public class FileDTO {
     private String url;
     private MediaType type;
     private Integer sortOrder;
+    private Integer width;
+    private Integer height;
 }

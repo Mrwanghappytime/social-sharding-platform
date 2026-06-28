@@ -1,6 +1,5 @@
 package com.social.relation.config;
 
-import com.google.common.collect.Collections2;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.shardingsphere.driver.api.ShardingSphereDataSourceFactory;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
@@ -14,7 +13,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.util.CollectionUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;

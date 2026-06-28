@@ -27,6 +27,8 @@ public class PostFacadeResponse implements Serializable {
     private Integer commentCount;
     private List<String> imageUrls;
     private String videoUrl;
+    private Integer videoWidth;
+    private Integer videoHeight;
     private Boolean isLiked;
     private LocalDateTime createdAt;
 
@@ -46,6 +48,8 @@ public class PostFacadeResponse implements Serializable {
         response.setCommentCount(post.getCommentCount());
         response.setImageUrls(post.getImageUrls());
         response.setVideoUrl(post.getVideoUrl());
+        response.setVideoWidth(post.getVideoWidth());
+        response.setVideoHeight(post.getVideoHeight());
         response.setIsLiked(isLiked);
         response.setCreatedAt(post.getCreatedAt());
         return response;

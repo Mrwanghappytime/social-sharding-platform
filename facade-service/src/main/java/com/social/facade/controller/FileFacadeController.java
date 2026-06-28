@@ -35,7 +35,9 @@ public class FileFacadeController {
     @PostMapping("/upload")
     public ResponseEntity<Result<FileDTO>> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "postId", required = false) Long postId) {
+            @RequestParam(value = "postId", required = false) Long postId,
+            @RequestParam(value = "width", required = false) Integer width,
+            @RequestParam(value = "height", required = false) Integer height) {
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Result.badRequest("File is empty"));
@@ -61,6 +63,12 @@ public class FileFacadeController {
             body.add("file", file.getResource());
             if (postId != null) {
                 body.add("postId", postId.toString());
+            }
+            if (width != null) {
+                body.add("width", width.toString());
+            }
+            if (height != null) {
+                body.add("height", height.toString());
             }
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);

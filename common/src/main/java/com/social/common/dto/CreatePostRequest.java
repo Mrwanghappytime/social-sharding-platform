@@ -24,4 +24,8 @@ public class CreatePostRequest {
     private List<String> imageUrls;
 
     private String videoUrl;
+
+    private Integer videoWidth;
+
+    private Integer videoHeight;
 }

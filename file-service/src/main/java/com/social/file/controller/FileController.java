@@ -36,7 +36,9 @@ public class FileController {
     public ResponseEntity<Result<com.social.common.dto.FileDTO>> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "postId", required = false) Long postId,
-            @RequestParam(value = "type", required = false) String typeStr) {
+            @RequestParam(value = "type", required = false) String typeStr,
+            @RequestParam(value = "width", required = false) Integer width,
+            @RequestParam(value = "height", required = false) Integer height) {
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Result.badRequest("File is empty"));
@@ -64,12 +66,14 @@ public class FileController {
             return ResponseEntity.badRequest().body(Result.error(5002, "Video file too large"));
         }
 
-        com.social.common.entity.File savedFile = fileService.uploadFile(file, postId, mediaType);
+        com.social.common.entity.File savedFile = fileService.uploadFile(file, postId, mediaType, width, height);
         com.social.common.dto.FileDTO fileDTO = new com.social.common.dto.FileDTO();
         fileDTO.setId(savedFile.getId());
         fileDTO.setUrl(savedFile.getUrl());
         fileDTO.setType(savedFile.getType());
         fileDTO.setSortOrder(savedFile.getSortOrder());
+        fileDTO.setWidth(savedFile.getWidth());
+        fileDTO.setHeight(savedFile.getHeight());
 
         return ResponseEntity.ok(Result.success(fileDTO));
     }

@@ -9,6 +9,39 @@ export interface UploadProgress {
   error?: string
 }
 
+export interface VideoUploadResult {
+  url: string
+  width: number
+  height: number
+}
+
+const probeVideoMetadata = (file: File): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    const objectUrl = URL.createObjectURL(file)
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl)
+      video.removeAttribute('src')
+      video.load()
+    }
+
+    video.onloadedmetadata = () => {
+      const width = video.videoWidth || 0
+      const height = video.videoHeight || 0
+      cleanup()
+      resolve({ width, height })
+    }
+    video.onerror = () => {
+      cleanup()
+      resolve({ width: 0, height: 0 })
+    }
+
+    video.src = objectUrl
+  })
+}
+
 export const useUploadStore = defineStore('upload', () => {
   const uploads = ref<Map<string, UploadProgress>>(new Map())
   const isUploading = ref(false)
@@ -44,17 +77,24 @@ export const useUploadStore = defineStore('upload', () => {
     }
   }
 
-  const uploadVideo = async (file: File): Promise<string | null> => {
+  const uploadVideo = async (file: File): Promise<VideoUploadResult | null> => {
     const fileName = file.name
     uploads.value.set(fileName, { fileName, progress: 0 })
 
     try {
-      const res = await uploadFile(file, 'video', (progress: number) => {
-        const upload = uploads.value.get(fileName)
-        if (upload) {
-          upload.progress = progress
-        }
-      })
+      const { width, height } = await probeVideoMetadata(file)
+
+      const res = await uploadFile(
+        file,
+        'video',
+        (progress: number) => {
+          const upload = uploads.value.get(fileName)
+          if (upload) {
+            upload.progress = progress
+          }
+        },
+        width && height ? { width, height } : undefined
+      )
 
       const url = res.data?.url || res.url
       if (url) {
@@ -63,7 +103,7 @@ export const useUploadStore = defineStore('upload', () => {
           upload.progress = 100
           upload.url = url
         }
-        return url
+        return { url, width, height }
       }
       throw new Error('Upload failed')
     } catch (error: any) {

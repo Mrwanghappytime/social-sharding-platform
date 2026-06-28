@@ -32,7 +32,7 @@ public class FileServiceImpl {
     private static final int MAX_IMAGES_PER_POST = 9;
 
     @Transactional
-    public File uploadFile(MultipartFile file, Long postId, MediaType mediaType) {
+    public File uploadFile(MultipartFile file, Long postId, MediaType mediaType, Integer width, Integer height) {
         if (mediaType == MediaType.IMAGE && postId != null) {
             long imageCount = fileRepository.findByPostIdOrderBySortOrderAsc(postId).stream()
                     .filter(f -> f.getType() == MediaType.IMAGE)
@@ -79,6 +79,8 @@ public class FileServiceImpl {
         fileEntity.setUrl(url);
         fileEntity.setType(mediaType);
         fileEntity.setSortOrder(sortOrder);
+        fileEntity.setWidth(width);
+        fileEntity.setHeight(height);
 
         return fileRepository.save(fileEntity);
     }

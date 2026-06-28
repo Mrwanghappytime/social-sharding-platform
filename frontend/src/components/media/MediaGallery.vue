@@ -1,5 +1,5 @@
 <template>
-  <div class="media-gallery" :class="[`count-${images?.length || videos?.length}`]">
+  <div class="media-gallery" :class="[`count-${images?.length || normalizedVideos.length}`]">
     <template v-if="images?.length">
       <div
         v-for="(img, index) in displayImages"
@@ -23,9 +23,9 @@
       </teleport>
     </template>
 
-    <template v-if="videos?.length">
+    <template v-if="normalizedVideos.length">
       <div
-        v-for="(video, index) in videos"
+        v-for="(video, index) in normalizedVideos"
         :key="index"
         class="media-item video-item"
         :style="videoItemStyle(index)"
@@ -33,7 +33,7 @@
       >
         <video
           :ref="el => setVideoRef(el, index)"
-          :src="video"
+          :src="video.url"
           :controls="playingVideoIndex === index"
           preload="metadata"
           @loadedmetadata="handleVideoMetadata(index)"
@@ -57,9 +57,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+interface VideoInput {
+  url: string
+  width?: number
+  height?: number
+}
+
 const props = defineProps<{
   images?: string[]
-  videos?: string[]
+  videos?: Array<string | VideoInput>
 }>()
 
 const showViewer = ref(false)
@@ -67,6 +73,11 @@ const previewIndex = ref(0)
 const playingVideoIndex = ref<number | null>(null)
 const videoRefs = ref<HTMLVideoElement[]>([])
 const videoRatios = ref<Record<number, string>>({})
+
+const normalizedVideos = computed<VideoInput[]>(() => {
+  if (!props.videos) return []
+  return props.videos.map(v => (typeof v === 'string' ? { url: v } : v))
+})
 
 const displayImages = computed(() => {
   if (!props.images) return []
@@ -98,9 +109,17 @@ const handleVideoMetadata = (index: number) => {
   }
 }
 
-const videoItemStyle = (index: number) => ({
-  aspectRatio: videoRatios.value[index] || '16 / 9'
-})
+const videoItemStyle = (index: number) => {
+  // 优先级：metadata 加载完成后的真实比例 > 上传时预存的尺寸 > 16/9 兜底
+  if (videoRatios.value[index]) {
+    return { aspectRatio: videoRatios.value[index] }
+  }
+  const v = normalizedVideos.value[index]
+  if (v?.width && v?.height) {
+    return { aspectRatio: `${v.width} / ${v.height}` }
+  }
+  return { aspectRatio: '16 / 9' }
+}
 
 const playVideo = async (index: number) => {
   const currentVideo = videoRefs.value[index]

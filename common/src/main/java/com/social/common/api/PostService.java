@@ -24,6 +24,12 @@ public interface PostService {
 
     PostDTO createPost(Long userId, String title, String content, PostType type, String imageUrls, String videoUrl);
 
+    default PostDTO createPost(Long userId, String title, String content, PostType type,
+                               String imageUrls, String videoUrl,
+                               Integer videoWidth, Integer videoHeight) {
+        return createPost(userId, title, content, type, imageUrls, videoUrl);
+    }
+
     void deletePost(Long postId, Long userId);
 
     PageResult<PostDTO> getUserPosts(Long userId, Integer page, Integer size);

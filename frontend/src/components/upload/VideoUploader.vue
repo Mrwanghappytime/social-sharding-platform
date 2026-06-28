@@ -47,10 +47,10 @@ const handleFileChange = async (e: Event) => {
     return
   }
 
-  const url = await uploadStore.uploadVideo(file)
-  if (url) {
-    videoUrl.value = url
-    emit('change', url)
+  const result = await uploadStore.uploadVideo(file)
+  if (result?.url) {
+    videoUrl.value = result.url
+    emit('change', result)
   }
 
   // Reset input
@@ -61,7 +61,7 @@ const handleFileChange = async (e: Event) => {
 
 const removeVideo = () => {
   videoUrl.value = ''
-  emit('change', '')
+  emit('change', { url: '', width: 0, height: 0 })
 }
 </script>
 

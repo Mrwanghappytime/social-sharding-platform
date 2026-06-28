@@ -639,6 +639,8 @@ CREATE TABLE IF NOT EXISTS files (
     url VARCHAR(500) NOT NULL,
     type VARCHAR(20) NOT NULL COMMENT 'IMAGE, VIDEO',
     sort_order INT DEFAULT 0,
+    width INT NULL COMMENT '媒体原始宽度（视频/图片）',
+    height INT NULL COMMENT '媒体原始高度（视频/图片）',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_post_id (post_id)
@@ -698,4 +700,15 @@ ALTER TABLE notifications_14 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100
 ALTER TABLE notifications_14 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
 
 ALTER TABLE notifications_15 ADD COLUMN IF NOT EXISTS actor_username VARCHAR(100);
+
+-- =====================================================
+-- Migration: Add width/height to files and posts (video size preload)
+-- Date: 2026-06-28
+-- Description: 保存视频/图片原始宽高，前端预加载时直接占位，避免黑框闪烁
+-- =====================================================
+ALTER TABLE files ADD COLUMN IF NOT EXISTS width INT NULL COMMENT '媒体原始宽度';
+ALTER TABLE files ADD COLUMN IF NOT EXISTS height INT NULL COMMENT '媒体原始高度';
+
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_width INT NULL COMMENT '视频原始宽度';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_height INT NULL COMMENT '视频原始高度';
 ALTER TABLE notifications_15 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);

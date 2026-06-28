@@ -27,6 +27,8 @@ export interface Post {
   type: PostType | number
   imageUrls?: string[]
   videoUrl?: string
+  videoWidth?: number
+  videoHeight?: number
   likeCount: number | null
   commentCount: number | null
   isLiked?: boolean | null
@@ -40,6 +42,14 @@ export interface MediaFile {
   url: string
   type: string
   sortOrder?: number
+  width?: number
+  height?: number
+}
+
+export interface VideoItem {
+  url: string
+  width?: number
+  height?: number
 }
 
 export interface Comment {
