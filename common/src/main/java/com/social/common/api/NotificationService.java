@@ -16,4 +16,9 @@ public interface NotificationService {
     void markAllAsRead(Long recipientId);
 
     Long getUnreadCount(Long recipientId);
+
+    void upsertConversationNotification(Long recipientId, Long actorId, Long conversationId,
+                                        String actorUsername, String actorAvatar);
+
+    void markConversationNotificationAsRead(Long recipientId, Long conversationId);
 }

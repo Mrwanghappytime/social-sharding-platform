@@ -70,7 +70,7 @@ public class NotificationServiceImpl implements NotificationService {
     public PageResult<NotificationDTO> getNotificationList(Long recipientId, Integer page, Integer size) {
         log.debug(">>> getNotificationList ENTER | recipientId={} | page={} | size={}", recipientId, page, size);
         try {
-            PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            PageRequest pageRequest = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
             Page<Notification> notificationPage = notificationRepository.findByRecipientId(recipientId, pageRequest);
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
@@ -127,5 +127,57 @@ public class NotificationServiceImpl implements NotificationService {
         Long count = notificationRepository.countUnreadByRecipientId(recipientId);
         log.debug("<<< getUnreadCount EXIT | recipientId={} | count={} | traceId={}", recipientId, count, LogUtil.getTraceId());
         return count;
+    }
+
+    @Override
+    public void upsertConversationNotification(Long recipientId, Long actorId, Long conversationId,
+                                               String actorUsername, String actorAvatar) {
+        log.info(">>> upsertConversationNotification ENTER | recipientId={} | actorId={} | conversationId={}",
+                recipientId, actorId, conversationId);
+        Notification notification = notificationRepository
+                .findByRecipientIdAndTypeAndTargetTypeAndTargetId(
+                        recipientId,
+                        NotificationType.MESSAGE,
+                        "CONVERSATION",
+                        conversationId
+                )
+                .orElseGet(() -> {
+                    Notification created = new Notification();
+                    created.setRecipientId(recipientId);
+                    created.setType(NotificationType.MESSAGE);
+                    created.setTargetType("CONVERSATION");
+                    created.setTargetId(conversationId);
+                    return created;
+                });
+
+        notification.setActorId(actorId);
+        notification.setActorUsername(actorUsername);
+        notification.setActorAvatar(actorAvatar);
+        notification.setIsRead(false);
+        Notification saved = notificationRepository.save(notification);
+
+        String channel = RedisKeys.notificationChannel(recipientId);
+        String message = saved.getId() + ":" + NotificationType.MESSAGE.name() + ":" + actorId + ":"
+                + conversationId + ":CONVERSATION:" + actorUsername + ":"
+                + (StringUtil.isNullOrEmpty(actorAvatar) ? " " : actorAvatar);
+        stringRedisTemplate.convertAndSend(channel, message);
+        log.info("<<< upsertConversationNotification EXIT | recipientId={} | notificationId={} | traceId={}",
+                recipientId, saved.getId(), LogUtil.getTraceId());
+    }
+
+    @Override
+    public void markConversationNotificationAsRead(Long recipientId, Long conversationId) {
+        log.debug(">>> markConversationNotificationAsRead ENTER | recipientId={} | conversationId={}", recipientId, conversationId);
+        notificationRepository.findByRecipientIdAndTypeAndTargetTypeAndTargetId(
+                recipientId,
+                NotificationType.MESSAGE,
+                "CONVERSATION",
+                conversationId
+        ).ifPresent(notification -> {
+            notification.setIsRead(true);
+            notificationRepository.save(notification);
+        });
+        log.info("<<< markConversationNotificationAsRead EXIT | recipientId={} | conversationId={} | traceId={}",
+                recipientId, conversationId, LogUtil.getTraceId());
     }
 }
