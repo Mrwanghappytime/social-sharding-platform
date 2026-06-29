@@ -1,0 +1,68 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: message-service
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
+  datasource:
+    url: jdbc:mysql://localhost:3306/social_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: root
+      database: 0
+  main:
+    allow-bean-definition-overriding: true
+  jpa:
+    open-in-view: false
+
+dubbo:
+  application:
+    name: message-service
+  protocol:
+    name: dubbo
+    port: 20888
+  registry:
+    address: nacos://localhost:8848
+  scan:
+    base-packages: com.social.message
+  consumer:
+    check: false
+    filter: dubboTraceFilter
+  provider:
+    filter: dubboTraceFilter
+
+jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: true
+  properties:
+    hibernate:
+      format_sql: true
+      dialect: org.hibernate.dialect.MySQLDialect
+
+jwt:
+  secret: social-sharing-platform-secret-key-change-in-production
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: INFO
+    com.social.message: INFO
+  log-path: ${LOG_PATH:logs}
+
+service:
+  name: message-service
+  ip: ${HOST_IP:127.0.0.1}
+  port: 8088

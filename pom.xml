@@ -20,6 +20,7 @@
         <module>interaction-service</module>
         <module>relation-service</module>
         <module>notification-service</module>
+        <module>message-service</module>
         <module>file-service</module>
         <module>facade-service</module>
     </modules>
