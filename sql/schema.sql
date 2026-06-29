@@ -712,3 +712,40 @@ ALTER TABLE files ADD COLUMN IF NOT EXISTS height INT NULL COMMENT '媒体原始
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_width INT NULL COMMENT '视频原始宽度';
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_height INT NULL COMMENT '视频原始高度';
 ALTER TABLE notifications_15 ADD COLUMN IF NOT EXISTS actor_avatar VARCHAR(500);
+
+-- =====================================================
+-- Migration: Add private message conversations and messages
+-- Date: 2026-06-29
+-- Description: 私聊会话、私聊消息、MESSAGE 通知类型由应用枚举支持
+-- =====================================================
+CREATE TABLE IF NOT EXISTS conversations (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user1_id BIGINT NOT NULL COMMENT '较小的用户ID',
+    user2_id BIGINT NOT NULL COMMENT '较大的用户ID',
+    last_message_id BIGINT NULL COMMENT '最后一条消息ID',
+    last_message_type VARCHAR(20) NULL COMMENT '最后一条消息类型',
+    last_message_preview VARCHAR(255) NULL COMMENT '最后一条消息摘要',
+    last_message_at DATETIME NULL COMMENT '最后一条消息时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_conversation_users (user1_id, user2_id),
+    KEY idx_user1_updated (user1_id, updated_at),
+    KEY idx_user2_updated (user2_id, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='私聊会话表';
+
+CREATE TABLE IF NOT EXISTS messages (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    conversation_id BIGINT NOT NULL COMMENT '会话ID',
+    sender_id BIGINT NOT NULL COMMENT '发送者ID',
+    receiver_id BIGINT NOT NULL COMMENT '接收者ID',
+    message_type VARCHAR(20) NOT NULL COMMENT '消息类型：TEXT/IMAGE',
+    content VARCHAR(2000) NULL COMMENT '文本消息内容',
+    image_url VARCHAR(500) NULL COMMENT '压缩图片地址',
+    original_image_url VARCHAR(500) NULL COMMENT '原图地址',
+    is_read BOOLEAN DEFAULT FALSE COMMENT '接收者是否已读',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_conversation_created (conversation_id, created_at),
+    KEY idx_receiver_read (receiver_id, is_read),
+    KEY idx_sender_receiver_created (sender_id, receiver_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='私聊消息表';
