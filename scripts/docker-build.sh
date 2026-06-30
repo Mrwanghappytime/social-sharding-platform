@@ -30,6 +30,7 @@ SERVICES=(
     "interaction-service"
     "relation-service"
     "notification-service"
+    "message-service"
     "facade-service"
     "file-service"
 )

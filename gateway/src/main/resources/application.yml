@@ -36,6 +36,14 @@ spring:
             - Path=/ws/notify
           filters:
             - StripPrefix=0
+
+        # Private message WebSocket route - 通过 Nacos 负载均衡到 message-service 集群
+        - id: message-websocket
+          uri: lb:ws://message-service
+          predicates:
+            - Path=/ws/message
+          filters:
+            - StripPrefix=0
   nacos:
     discovery:
       enabled: true

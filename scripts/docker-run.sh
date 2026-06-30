@@ -28,6 +28,7 @@ declare -A SERVICES=(
     ["interaction-service"]="8083:swr.cn-north-4.myhuaweicloud.com/ddn-k8s/social-platform-interaction-service:latest"
     ["relation-service"]="8084:swr.cn-north-4.myhuaweicloud.com/ddn-k8s/social-platform-relation-service:latest"
     ["notification-service"]="8085:swr.cn-north-4.myhuaweicloud.com/ddn-k8s/social-platform-notification-service:latest"
+    ["message-service"]="8088:swr.cn-north-4.myhuaweicloud.com/ddn-k8s/social-platform-message-service:latest"
     ["facade-service"]="8087:swr.cn-north-4.myhuaweicloud.com/ddn-k8s/social-platform-facade-service:latest"
     ["file-service"]="8086:swr.cn-north-4.myhuaweicloud.com/ddn-k8s/social-platform-file-service:latest"
 )
