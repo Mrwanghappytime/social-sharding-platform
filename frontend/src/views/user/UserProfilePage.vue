@@ -25,7 +25,10 @@
               </div>
             </div>
             <div class="profile-actions">
-              <FollowButton v-if="!isOwnProfile" :userId="userId" />
+              <template v-if="!isOwnProfile">
+                <FollowButton :userId="userId" />
+                <el-button type="primary" @click="startPrivateMessage">私聊</el-button>
+              </template>
               <el-button v-else @click="$router.push('/settings')">编辑资料</el-button>
             </div>
           </div>
@@ -41,8 +44,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useMessageStore } from '@/stores/message'
 import { getUserById } from '@/api/user'
 import { getRelationCounts } from '@/api/relation'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -53,7 +57,9 @@ import PostList from '@/components/post/PostList.vue'
 import type { User } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
+const messageStore = useMessageStore()
 
 const userId = computed(() => Number(route.params.id))
 const user = ref<User | null>(null)
@@ -84,6 +90,17 @@ const loadRelationCounts = async () => {
 const loadAll = async () => {
   await loadUser()
   await loadRelationCounts()
+}
+
+const startPrivateMessage = async () => {
+  if (!authStore.isLoggedIn()) {
+    router.push({ name: 'Login', query: { redirect: route.fullPath } })
+    return
+  }
+  const conversation = await messageStore.openConversationWithUser(userId.value)
+  if (conversation?.id) {
+    router.push(`/messages/conversations/${conversation.id}`)
+  }
 }
 
 onMounted(async () => {
