@@ -81,6 +81,7 @@ const fetchNotifications = async (page: number = 1) => {
         targetId: n.targetId,
         targetType: n.targetType,
         targetTitle: n.targetTitle,
+        conversation: n.conversation,
         isRead: n.isRead,
         createdAt: n.createdAt
       }))
@@ -117,6 +118,10 @@ const markRead = (item: any) => {
 
 const handleClick = (item: any) => {
   markRead(item)
+  if (item.targetType === 'CONVERSATION' && item.targetId) {
+    router.push(`/messages/conversations/${item.targetId}`)
+    return
+  }
   if (item.targetType === 'POST' && item.targetId) {
     router.push(`/post/${item.targetId}`)
     return

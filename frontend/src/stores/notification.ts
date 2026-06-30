@@ -13,6 +13,15 @@ export interface Notification {
   targetId: number
   targetType: string
   targetTitle?: string
+  conversation?: {
+    id: number
+    peerUserId: number
+    peerUsername: string
+    peerAvatar?: string
+    lastMessageType?: 'TEXT' | 'IMAGE'
+    lastMessagePreview?: string
+    unreadCount?: number
+  }
   isRead: boolean
   createdAt?: string
 }
@@ -79,8 +88,8 @@ export const useNotificationStore = defineStore('notification', () => {
         return `${username} liked your post`
       case 'COMMENT':
         return `${username} commented on your post`
-      case 'FOLLOW':
-        return `${username} started following you`
+      case 'MESSAGE':
+        return `${username} 给你发了私信`
       default:
         return `${username} interacted with you`
     }
@@ -124,6 +133,7 @@ export const useNotificationStore = defineStore('notification', () => {
         actorAvatar: data.actorAvatar,
         targetId: data.targetId,
         targetType: data.targetType,
+        conversation: data.conversation,
         isRead: false,
         createdAt: new Date().toISOString()
       }

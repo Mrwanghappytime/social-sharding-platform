@@ -9,6 +9,15 @@ export interface Notification {
   targetId: number
   targetType: string
   targetTitle?: string
+  conversation?: {
+    id: number
+    peerUserId: number
+    peerUsername: string
+    peerAvatar?: string
+    lastMessageType?: 'TEXT' | 'IMAGE'
+    lastMessagePreview?: string
+    unreadCount?: number
+  }
   isRead: boolean
   createdAt: string
 }

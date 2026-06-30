@@ -26,6 +26,10 @@
       >
         {{ targetPostText }}
       </router-link>
+      <div v-if="notification.type === 'MESSAGE'" class="conversation-preview">
+        <span>{{ conversationPreview }}</span>
+        <span v-if="unreadCount > 0" class="message-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+      </div>
       <span class="time">{{ formatTime(notification.createdAt || '') }}</span>
     </div>
     <span v-if="!notification.isRead" class="unread-dot"></span>
@@ -47,10 +51,13 @@ const showTargetPost = computed(() => {
   return props.notification.targetType === 'POST' && !!props.notification.targetId
 })
 
-const targetPostText = computed(() => {
-  const title = props.notification.targetTitle || '查看动态'
-  return `「${title}」`
+const conversationPreview = computed(() => {
+  if (props.notification.type !== 'MESSAGE') return ''
+  const preview = props.notification.conversation?.lastMessagePreview
+  return preview || '查看私信'
 })
+
+const unreadCount = computed(() => props.notification.conversation?.unreadCount || 0)
 
 const getActionText = () => {
   switch (props.notification.type) {
