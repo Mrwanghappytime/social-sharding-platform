@@ -72,6 +72,32 @@ export interface Notification {
   targetId: number
   targetType: string
   targetTitle?: string
+  conversation?: Conversation
+  isRead: boolean
+  createdAt?: string
+}
+
+export interface Conversation {
+  id: number
+  peerUserId: number
+  peerUsername: string
+  peerAvatar?: string
+  lastMessageId?: number
+  lastMessageType?: 'TEXT' | 'IMAGE'
+  lastMessagePreview?: string
+  lastMessageAt?: string
+  unreadCount?: number
+}
+
+export interface Message {
+  id: number
+  conversationId: number
+  senderId: number
+  receiverId: number
+  messageType: 'TEXT' | 'IMAGE'
+  content?: string
+  imageUrl?: string
+  originalImageUrl?: string
   isRead: boolean
   createdAt?: string
 }
