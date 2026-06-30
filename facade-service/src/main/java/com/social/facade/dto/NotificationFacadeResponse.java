@@ -15,6 +15,7 @@ public class NotificationFacadeResponse implements Serializable {
     private Long targetId;
     private String targetType;
     private String targetTitle;
+    private ConversationFacadeResponse conversation;
     private Boolean isRead;
     private String createdAt;
 
