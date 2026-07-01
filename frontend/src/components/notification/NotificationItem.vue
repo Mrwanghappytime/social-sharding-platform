@@ -51,6 +51,11 @@ const showTargetPost = computed(() => {
   return props.notification.targetType === 'POST' && !!props.notification.targetId
 })
 
+const targetPostText = computed(() => {
+  const title = props.notification.targetTitle || '查看动态'
+  return `「${title}」`
+})
+
 const conversationPreview = computed(() => {
   if (props.notification.type !== 'MESSAGE') return ''
   const preview = props.notification.conversation?.lastMessagePreview
@@ -67,6 +72,8 @@ const getActionText = () => {
       return '评论了你的动态'
     case 'FOLLOW':
       return '关注了你'
+    case 'MESSAGE':
+      return '给你发了私信'
     default:
       return '有新通知'
   }
@@ -155,6 +162,31 @@ const formatTime = (time: string) => {
     &:hover {
       color: #4CAF82;
     }
+  }
+
+  .conversation-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .message-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: #ff7f7f;
+    color: #fff;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 
   .time {
