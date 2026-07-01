@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>私聊功能架构图与流程图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section h2 {
+            font-size: 1.8rem;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #667eea;
+            font-weight: 600;
+        }
+
+        .diagram-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .mermaid {
+            text-align: center;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .tech-tag {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tech-tag:hover {
+            background: #5a6fd8;
+            transform: scale(1.05);
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+            margin-top: 2rem;
+        }
+
+        .footer p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 1.5rem;
+            }
+
+            .section h2 {
+                font-size: 1.5rem;
+            }
+
+            .diagram-container {
+                padding: 1.5rem;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1.25rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+        }
+
+        .info-box p {
+            color: #856404;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #795548;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>私聊功能架构图</h1>
+            <p>Social Sharing Platform - 实时私聊系统设计与实现</p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>系统架构图</h2>
+                <div class="diagram-container">
+                    <div class="mermaid">
+graph TD
+    subgraph 前端层
+        A[Web 浏览器]
+        B[Vue 3 + Pinia 客户端]
+        C[WebSocket 连接管理]
+        D[Canvas 图片压缩]
+    end
+
+    subgraph 网关层
+        E[Spring Cloud Gateway]
+        F[JWT 认证过滤器]
+        G[WebSocket 路由转发]
+    end
+
+    subgraph 微服务层
+        H[facade-service<br/>API 聚合层]
+        I[message-service<br/>私聊核心服务]
+        J[notification-service<br/>通知服务]
+        K[user-service<br/>用户服务]
+        L[file-service<br/>文件服务]
+    end
+
+    subgraph 数据存储层
+        M[MySQL 数据库<br/>conversations/messages 表]
+        N[Redis<br/>Pub/Sub + 缓存]
+        O[本地文件存储<br/>/data/files 目录]
+    end
+
+    A -->|HTTP/HTTPS| E
+    A -->|WebSocket| G
+    B -->|API 请求| H
+    C -->|实时消息| G
+    D -->|图片压缩| L
+
+    E -->|API 路由| H
+    G -->|转发到 message-service| I
+
+    H -->|Dubbo RPC| I
+    H -->|Dubbo RPC| J
+    H -->|Dubbo RPC| K
+    H -->|Dubbo RPC| L
+
+    I -->|读写操作| M
+    I -->|消息广播| N
+    I -->|WebSocket 推送| A
+
+    J -->|通知存储| M
+    J -->|通知广播| N
+
+    L -->|文件存储| O
+
+    N -->|消息订阅| I
+    N -->|通知订阅| J
+
+    style A fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style E fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#f093fb,stroke:#333,stroke-width:2px
+    style I fill:#4facfe,stroke:#333,stroke-width:2px
+    style J fill:#43e97b,stroke:#333,stroke-width:2px
+    style K fill:#fa709a,stroke:#333,stroke-width:2px
+    style L fill:#fee140,stroke:#333,stroke-width:2px
+    style M fill:#30cfd0,stroke:#333,stroke-width:2px
+    style N fill:#334155,stroke:#333,stroke-width:2px,color:#fff
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>消息发送流程图</h2>
+                <div class="diagram-container">
+                    <div class="mermaid">
+sequenceDiagram
+    participant 浏览器 as 前端浏览器
+    participant 网关 as Spring Cloud Gateway
+    participant 聚合层 as facade-service
+    participant 消息服务 as message-service
+    participant 通知服务 as notification-service
+    participant 数据库 as MySQL 数据库
+    participant 缓存 as Redis
+    participant 文件服务 as file-service
+
+    浏览器->>网关: 发送私聊消息请求
+    网关->>聚合层: 转发 API 请求
+    聚合层->>消息服务: 调用 Dubbo RPC 接口
+    消息服务->>数据库: 保存消息到 messages 表
+    数据库-->>消息服务: 返回消息保存结果
+    消息服务->>缓存: 发送 Redis Pub/Sub 广播
+    消息服务-->>聚合层: 返回消息响应
+    聚合层->>通知服务: 调用 upsertConversationNotification
+    通知服务->>数据库: 创建/更新通知记录
+    通知服务->>缓存: 发送通知广播
+    缓存->>消息服务: 消息订阅
+    消息服务->>浏览器: WebSocket 实时推送
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>核心功能特性</h2>
+                <div class="features">
+                    <div class="feature-card">
+                        <h3>实时私聊</h3>
+                        <p>基于 WebSocket 的实时消息传输，支持单用户单连接复用，进入会话时 JOIN，离开时 LEAVE，空闲 5 分钟自动关闭连接。</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>消息类型</h3>
+                        <p>支持文本消息和图片消息，图片默认压缩（1280px 最大边长，JPEG 质量 0.8），可选择发送原图。</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>会话管理</h3>
+                        <p>会话使用唯一键 (user1_id, user2_id) 并规范化为 user1_id < user2_id，确保每个对话只创建一个会话记录。</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>通知系统</h3>
+                        <p>私聊通知与现有通知系统整合，每个会话对应一个 MESSAGE 类型通知，显示未读消息数和最后消息预览。</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>消息持久化</h3>
+                        <p>所有消息存储在 MySQL 数据库中，支持分页加载历史消息，消息支持已读/未读状态标记。</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>用户体验</h3>
+                        <p>聊天页面支持图片预览、消息时间格式化、未读消息计数、通知点击跳转等功能。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>技术栈</h2>
+                <div class="tech-stack">
+                    <span class="tech-tag">Vue 3</span>
+                    <span class="tech-tag">Pinia</span>
+                    <span class="tech-tag">Element Plus</span>
+                    <span class="tech-tag">TypeScript</span>
+                    <span class="tech-tag">Spring Boot 3.2</span>
+                    <span class="tech-tag">Dubbo 3.2</span>
+                    <span class="tech-tag">Spring Cloud Gateway</span>
+                    <span class="tech-tag">Nacos</span>
+                    <span class="tech-tag">MySQL</span>
+                    <span class="tech-tag">Redis</span>
+                    <span class="tech-tag">WebSocket</span>
+                    <span class="tech-tag">Docker</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>数据库设计</h2>
+                <div class="info-box">
+                    <p><strong>conversations 表：</strong>存储对话信息，包含 id、user1_id、user2_id（规范化为 user1 < user2）、last_message_preview、last_message_time、unread_count 等字段。</p>
+                </div>
+                <div class="info-box">
+                    <p><strong>messages 表：</strong>存储消息内容，包含 id、conversation_id、sender_id、receiver_id、content、type（TEXT/IMAGE）、image_url、original_image_url、created_at 等字段。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 Social Sharing Platform. 所有权利保留。</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#333',
+                lineColor: '#333',
+                secondaryColor: '#764ba2',
+                tertiaryColor: '#f093fb'
+            },
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        });
+    </script>
+</body>
+</html>

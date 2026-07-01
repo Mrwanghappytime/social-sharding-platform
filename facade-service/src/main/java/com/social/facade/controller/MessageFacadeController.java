@@ -52,7 +52,7 @@ public class MessageFacadeController {
     @GetMapping("/conversations/{conversationId}/messages")
     public Result<PageResult<MessageFacadeResponse>> getMessages(
             @RequestHeader("X-User-Id") Long currentUserId,
-            @PathVariable Long conversationId,
+            @PathVariable("conversationId") Long conversationId,
             @RequestParam(name = "page", defaultValue = "1") Integer page,
             @RequestParam(name = "size", defaultValue = "30") Integer size) {
         PageResult<MessageDTO> messages = messageService.getMessages(conversationId, currentUserId, page, size);
@@ -65,7 +65,7 @@ public class MessageFacadeController {
     @PostMapping("/conversations/{conversationId}/messages/text")
     public Result<MessageFacadeResponse> sendTextMessage(
             @RequestHeader("X-User-Id") Long currentUserId,
-            @PathVariable Long conversationId,
+            @PathVariable("conversationId") Long conversationId,
             @Valid @RequestBody SendTextMessageRequest request) {
         MessageDTO message = messageService.sendTextMessage(currentUserId, conversationId, request.getContent());
         upsertMessageNotification(currentUserId, message.getReceiverId(), conversationId);
@@ -75,7 +75,7 @@ public class MessageFacadeController {
     @PostMapping("/conversations/{conversationId}/messages/image")
     public Result<MessageFacadeResponse> sendImageMessage(
             @RequestHeader("X-User-Id") Long currentUserId,
-            @PathVariable Long conversationId,
+            @PathVariable("conversationId") Long conversationId,
             @Valid @RequestBody SendImageMessageRequest request) {
         MessageDTO message = messageService.sendImageMessage(currentUserId, conversationId, request.getImageUrl(), request.getOriginalImageUrl());
         upsertMessageNotification(currentUserId, message.getReceiverId(), conversationId);

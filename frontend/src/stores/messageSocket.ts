@@ -47,6 +47,7 @@ export const useMessageSocketStore = defineStore('messageSocket', () => {
     ws = new WebSocket(buildMessageWebSocketUrl(token))
 
     ws.onopen = () => {
+      console.log('Connecting to WebSocket:', buildMessageWebSocketUrl(token).replace(/token=[^&]+/, 'token=***'))
       connected.value = true
       clearHeartbeat()
       heartbeatTimer = setInterval(() => {
@@ -60,6 +61,7 @@ export const useMessageSocketStore = defineStore('messageSocket', () => {
     }
 
     ws.onmessage = (event) => {
+      console.log("recieve message:" + event.data);
       const data = JSON.parse(event.data)
       if (data.type === 'pong' || data.type === 'JOINED') return
       if (data.type === 'MESSAGE' && data.conversationId === activeConversationId.value) {
