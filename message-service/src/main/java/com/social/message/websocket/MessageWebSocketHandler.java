@@ -33,7 +33,7 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
 
     private final MessageServiceImpl messageService;
     private final RedisMessageListenerContainer listenerContainer;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     // 用户级 WebSocket 会话：userId -> session
     private final Map<Long, WebSocketSession> userSessions = new ConcurrentHashMap<>();
