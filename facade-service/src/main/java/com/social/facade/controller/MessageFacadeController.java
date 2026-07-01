@@ -44,7 +44,7 @@ public class MessageFacadeController {
     @GetMapping("/conversations/{conversationId}")
     public Result<ConversationFacadeResponse> getConversation(
             @RequestHeader("X-User-Id") Long currentUserId,
-            @PathVariable Long conversationId) {
+            @PathVariable(name = "conversationId") Long conversationId) {
         ConversationDTO conversation = messageService.getConversationById(conversationId, currentUserId);
         return Result.success(enrichConversation(conversation));
     }
@@ -85,7 +85,7 @@ public class MessageFacadeController {
     @PutMapping("/conversations/{conversationId}/read")
     public Result<Void> markConversationAsRead(
             @RequestHeader("X-User-Id") Long currentUserId,
-            @PathVariable Long conversationId) {
+            @PathVariable(name = "conversationId") Long conversationId) {
         messageService.markConversationAsRead(conversationId, currentUserId);
         notificationService.markConversationNotificationAsRead(currentUserId, conversationId);
         return Result.success();
