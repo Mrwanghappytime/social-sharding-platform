@@ -199,72 +199,108 @@
         <div class="content">
             <div class="section">
                 <h2>系统架构图</h2>
+                <div class="info-box">
+                    <p><strong>关键设计：</strong>使用 <strong>单一全局 Redis Channel</strong>（<code>message:push</code>），所有 message-service 实例启动时订阅一次；每条消息广播到所有实例，各实例根据本地 WebSocket 会话表判断 receiver 是否在本机，命中则推送，未命中则忽略。彻底避免 per-conversation channel 数量爆炸。</p>
+                </div>
                 <div class="diagram-container">
                     <div class="mermaid">
 graph TD
     subgraph 前端层
-        A[Web 浏览器]
-        B[Vue 3 + Pinia 客户端]
-        C[WebSocket 连接管理]
-        D[Canvas 图片压缩]
+        A[Web 浏览器<br/>Vue 3 + Pinia]
+        C[WebSocket 单连接<br/>JOIN/LEAVE conversation]
     end
 
     subgraph 网关层
-        E[Spring Cloud Gateway]
-        F[JWT 认证过滤器]
-        G[WebSocket 路由转发]
+        E[Spring Cloud Gateway<br/>JWT 认证 + WS 路由]
     end
 
     subgraph 微服务层
         H[facade-service<br/>API 聚合层]
-        I[message-service<br/>私聊核心服务]
-        J[notification-service<br/>通知服务]
-        K[user-service<br/>用户服务]
-        L[file-service<br/>文件服务]
+        I1[message-service 实例1<br/>本地 userSessions 表]
+        I2[message-service 实例2<br/>本地 userSessions 表]
+        J[notification-service]
+        K[user-service]
+        L[file-service]
     end
 
     subgraph 数据存储层
-        M[MySQL 数据库<br/>conversations/messages 表]
-        N[Redis<br/>Pub/Sub + 缓存]
-        O[本地文件存储<br/>/data/files 目录]
+        M[(MySQL<br/>conversations/messages)]
+        N[Redis Pub/Sub<br/>单一 channel: message:push]
+        O[本地文件存储]
     end
 
-    A -->|HTTP/HTTPS| E
-    A -->|WebSocket| G
-    B -->|API 请求| H
-    C -->|实时消息| G
-    D -->|图片压缩| L
+    A -->|HTTP API| E
+    A -->|WebSocket| E
+    E -->|/api/**| H
+    E -->|/ws/message<br/>负载均衡| I1
+    E -->|/ws/message<br/>负载均衡| I2
 
-    E -->|API 路由| H
-    G -->|转发到 message-service| I
-
-    H -->|Dubbo RPC| I
+    H -->|Dubbo RPC| I1
     H -->|Dubbo RPC| J
     H -->|Dubbo RPC| K
     H -->|Dubbo RPC| L
 
-    I -->|读写操作| M
-    I -->|消息广播| N
-    I -->|WebSocket 推送| A
+    I1 -->|保存消息| M
+    I2 -->|保存消息| M
 
-    J -->|通知存储| M
-    J -->|通知广播| N
+    I1 -->|publish MessageDTO<br/>全量数据| N
+    I2 -->|publish MessageDTO<br/>全量数据| N
+
+    N -->|广播消息| I1
+    N -->|广播消息| I2
+
+    I1 -.->|receiver 在本机?<br/>是: 推送 / 否: 忽略| A
 
     L -->|文件存储| O
-
-    N -->|消息订阅| I
-    N -->|通知订阅| J
 
     style A fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
     style E fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
     style H fill:#f093fb,stroke:#333,stroke-width:2px
-    style I fill:#4facfe,stroke:#333,stroke-width:2px
+    style I1 fill:#4facfe,stroke:#333,stroke-width:2px
+    style I2 fill:#4facfe,stroke:#333,stroke-width:2px
     style J fill:#43e97b,stroke:#333,stroke-width:2px
     style K fill:#fa709a,stroke:#333,stroke-width:2px
     style L fill:#fee140,stroke:#333,stroke-width:2px
     style M fill:#30cfd0,stroke:#333,stroke-width:2px
-    style N fill:#334155,stroke:#333,stroke-width:2px,color:#fff
+    style N fill:#e74c3c,stroke:#333,stroke-width:3px,color:#fff
                     </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Redis Pub/Sub 广播模型详解</h2>
+                <div class="diagram-container">
+                    <div class="mermaid">
+graph LR
+    subgraph 消息发送端
+        S[用户A 发送消息<br/>实例1 接收]
+        S -->|publish MessageDTO<br/>含 receiverId=B| CH
+    end
+
+    subgraph Redis
+        CH[单一 Channel<br/>message:push]
+    end
+
+    subgraph 消息接收端 各实例并行处理
+        CH -->|广播| R1[实例1 收到]
+        CH -->|广播| R2[实例2 收到]
+        CH -->|广播| R3[实例N 收到]
+
+        R1 -->|查 userSessions<br/>B 不在本机| X1[忽略]
+        R2 -->|查 userSessions<br/>B 在本机 ✓| PUSH[WebSocket 推送用户B]
+        R3 -->|查 userSessions<br/>B 不在本机| X3[忽略]
+    end
+
+    style CH fill:#e74c3c,stroke:#333,stroke-width:3px,color:#fff
+    style PUSH fill:#43e97b,stroke:#333,stroke-width:2px
+    style X1 fill:#95a5a6,stroke:#333,stroke-width:1px,color:#fff
+    style X3 fill:#95a5a6,stroke:#333,stroke-width:1px,color:#fff
+                    </div>
+                </div>
+                <div class="info-box">
+                    <p><strong>优势对比：</strong></p>
+                    <p><strong>❌ 旧方案（per-conversation channel）：</strong>N 个会话 = N 个 Redis channel，用户进出会话动态订阅/取消订阅，多实例场景消息可能丢失。</p>
+                    <p><strong>✅ 新方案（全局单 channel）：</strong>只有 1 个 Redis channel，实例启动时订阅一次，消息全量广播 + 本地路由过滤，多实例天然支持水平扩展。</p>
                 </div>
             </div>
 
@@ -273,27 +309,36 @@ graph TD
                 <div class="diagram-container">
                     <div class="mermaid">
 sequenceDiagram
-    participant 浏览器 as 前端浏览器
-    participant 网关 as Spring Cloud Gateway
-    participant 聚合层 as facade-service
-    participant 消息服务 as message-service
-    participant 通知服务 as notification-service
-    participant 数据库 as MySQL 数据库
-    participant 缓存 as Redis
-    participant 文件服务 as file-service
+    participant 用户A as 用户A(浏览器)
+    participant 网关 as Gateway
+    participant Facade as facade-service
+    participant Msg1 as message-service实例1
+    participant Msg2 as message-service实例2
+    participant DB as MySQL
+    participant Redis as Redis Pub/Sub
+    participant 通知 as notification-service
+    participant 用户B as 用户B(浏览器)
 
-    浏览器->>网关: 发送私聊消息请求
-    网关->>聚合层: 转发 API 请求
-    聚合层->>消息服务: 调用 Dubbo RPC 接口
-    消息服务->>数据库: 保存消息到 messages 表
-    数据库-->>消息服务: 返回消息保存结果
-    消息服务->>缓存: 发送 Redis Pub/Sub 广播
-    消息服务-->>聚合层: 返回消息响应
-    聚合层->>通知服务: 调用 upsertConversationNotification
-    通知服务->>数据库: 创建/更新通知记录
-    通知服务->>缓存: 发送通知广播
-    缓存->>消息服务: 消息订阅
-    消息服务->>浏览器: WebSocket 实时推送
+    Note over 用户A,Msg1: 用户A的WS连接在实例1<br/>用户B的WS连接在实例2
+
+    用户A->>网关: POST 发送消息 (HTTP)
+    网关->>Facade: 转发API请求
+    Facade->>Msg1: Dubbo RPC sendTextMessage
+    Msg1->>DB: 保存消息记录
+    DB-->>Msg1: 消息ID
+    Msg1->>Redis: publish message:push<br/>(完整MessageDTO JSON)
+    Msg1-->>Facade: MessageDTO
+    Facade->>通知: upsertConversationNotification
+    通知->>DB: 更新通知记录
+    Facade-->>用户A: 200 OK
+
+    Note over Redis,Msg2: Redis广播到所有实例
+    Redis->>Msg1: 广播消息
+    Redis->>Msg2: 广播消息
+
+    Msg1->>Msg1: 查userSessions:<br/>B不在本机 → 忽略
+    Msg2->>Msg2: 查userSessions:<br/>B在本机 ✓ 且活跃会话匹配
+    Msg2->>用户B: WebSocket实时推送
                     </div>
                 </div>
             </div>
@@ -318,12 +363,12 @@ sequenceDiagram
                         <p>私聊通知与现有通知系统整合，每个会话对应一个 MESSAGE 类型通知，显示未读消息数和最后消息预览。</p>
                     </div>
                     <div class="feature-card">
-                        <h3>消息持久化</h3>
-                        <p>所有消息存储在 MySQL 数据库中，支持分页加载历史消息，消息支持已读/未读状态标记。</p>
+                        <h3>Redis 广播模型</h3>
+                        <p>使用<strong>单一全局 channel</strong>（<code>message:push</code>），实例启动时订阅一次；消息 publish 时携带完整 MessageDTO，各实例本地路由到 receiver 所在会话，避免 channel 爆炸和多实例消息丢失。</p>
                     </div>
                     <div class="feature-card">
-                        <h3>用户体验</h3>
-                        <p>聊天页面支持图片预览、消息时间格式化、未读消息计数、通知点击跳转等功能。</p>
+                        <h3>水平扩展友好</h3>
+                        <p>message-service 可任意扩容，用户 WebSocket 可连接到任一实例；发送端与接收端不需要在同一实例，天然支持集群部署。</p>
                     </div>
                 </div>
             </div>

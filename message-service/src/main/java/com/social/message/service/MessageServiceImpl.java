@@ -1,5 +1,6 @@
 package com.social.message.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.social.common.api.MessageService;
 import com.social.common.dto.ConversationDTO;
 import com.social.common.dto.MessageDTO;
@@ -37,8 +38,14 @@ public class MessageServiceImpl implements MessageService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
 
-    private static final String MESSAGE_CHANNEL_PREFIX = "message:conversation:";
+    /**
+     * 全局单一 channel：所有 message-service 实例订阅同一个 channel。
+     * 每个实例收到消息后，根据 receiverId 判断是否在本机 WebSocket 会话中，
+     * 命中则推送，未命中则忽略。避免 per-conversation channel 爆炸。
+     */
+    public static final String MESSAGE_PUSH_CHANNEL = "message:push";
 
     @Override
     @Transactional
@@ -85,8 +92,9 @@ public class MessageServiceImpl implements MessageService {
         Long receiverId = getPeerUserId(conversation, senderId);
         Message message = saveMessage(conversation, senderId, receiverId, MessageType.TEXT, content.trim(), null, null);
         updateConversationLastMessage(conversation, message, content.trim());
-        publishMessage(message);
-        return toMessageDTO(message);
+        MessageDTO dto = toMessageDTO(message);
+        publishMessage(dto);
+        return dto;
     }
 
     @Override
@@ -99,8 +107,9 @@ public class MessageServiceImpl implements MessageService {
         Long receiverId = getPeerUserId(conversation, senderId);
         Message message = saveMessage(conversation, senderId, receiverId, MessageType.IMAGE, null, imageUrl, originalImageUrl);
         updateConversationLastMessage(conversation, message, "[图片]");
-        publishMessage(message);
-        return toMessageDTO(message);
+        MessageDTO dto = toMessageDTO(message);
+        publishMessage(dto);
+        return dto;
     }
 
     private Message saveMessage(Conversation conversation, Long senderId, Long receiverId, MessageType type,
@@ -228,14 +237,13 @@ public class MessageServiceImpl implements MessageService {
         return dto;
     }
 
-    private void publishMessage(Message message) {
+    private void publishMessage(MessageDTO messageDTO) {
         try {
-            String channel = MESSAGE_CHANNEL_PREFIX + message.getConversationId();
-            String payload = message.getId() + ":" + message.getConversationId() + ":" + message.getSenderId()
-                    + ":" + message.getReceiverId();
-            stringRedisTemplate.convertAndSend(channel, payload);
+            String payload = objectMapper.writeValueAsString(messageDTO);
+            stringRedisTemplate.convertAndSend(MESSAGE_PUSH_CHANNEL, payload);
         } catch (Exception e) {
-            log.warn("Failed to publish message websocket event: messageId={}, error={}", message.getId(), e.getMessage());
+            log.warn("Failed to publish message websocket event: messageId={}, error={}",
+                    messageDTO.getId(), e.getMessage());
         }
     }
 }

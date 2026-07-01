@@ -2,16 +2,15 @@ package com.social.message.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.social.common.entity.Message;
-import com.social.common.repository.MessageRepository;
+import com.social.common.dto.MessageDTO;
 import com.social.message.service.MessageServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.stereotype.Component;
@@ -33,16 +32,29 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
     private String jwtSecret;
 
     private final MessageServiceImpl messageService;
-    private final MessageRepository messageRepository;
     private final RedisMessageListenerContainer listenerContainer;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // 用户级 WebSocket 会话：userId -> session
     private final Map<Long, WebSocketSession> userSessions = new ConcurrentHashMap<>();
+    // session -> userId 反向映射
     private final Map<String, Long> sessionUsers = new ConcurrentHashMap<>();
+    // session -> 当前活跃 conversationId（用户当前打开的会话）
     private final Map<String, Long> activeConversations = new ConcurrentHashMap<>();
-    private final Map<Long, MessageListener> conversationListeners = new ConcurrentHashMap<>();
 
-    private static final String MESSAGE_CHANNEL_PREFIX = "message:conversation:";
+    /**
+     * 启动时订阅全局 channel。所有实例都收到广播，各自判断本机是否有目标用户。
+     * 不再按 conversation 动态订阅/取消订阅。
+     */
+    @PostConstruct
+    public void init() {
+        listenerContainer.addMessageListener(
+                (redisMessage, pattern) -> handleRedisMessage(new String(redisMessage.getBody(), StandardCharsets.UTF_8)),
+                new ChannelTopic(MessageServiceImpl.MESSAGE_PUSH_CHANNEL)
+        );
+        log.info("Message WebSocket handler subscribed to global channel: {}",
+                MessageServiceImpl.MESSAGE_PUSH_CHANNEL);
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -79,9 +91,10 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Unauthorized"));
             return;
         }
+        // 权限校验
         messageService.isConversationParticipant(conversationId, userId);
+        // 只标记当前活跃会话，不做 Redis 订阅
         activeConversations.put(session.getId(), conversationId);
-        subscribeConversation(conversationId);
         session.sendMessage(new TextMessage("{\"type\":\"JOINED\",\"conversationId\":" + conversationId + "}"));
     }
 
@@ -92,49 +105,43 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void subscribeConversation(Long conversationId) {
-        conversationListeners.computeIfAbsent(conversationId, id -> {
-            MessageListener listener = (redisMessage, pattern) -> handleRedisMessage(id, new String(redisMessage.getBody(), StandardCharsets.UTF_8));
-            listenerContainer.addMessageListener(listener, new ChannelTopic(MESSAGE_CHANNEL_PREFIX + id));
-            return listener;
-        });
-    }
-
-    private void handleRedisMessage(Long conversationId, String body) {
+    /**
+     * 处理来自全局 Redis channel 的消息。
+     * 每个 message-service 实例都会收到，但只有 receiver 所在的实例才实际推送。
+     */
+    private void handleRedisMessage(String body) {
         try {
-            String[] parts = body.split(":");
-            Long messageId = Long.parseLong(parts[0]);
-            Message message = messageRepository.findById(messageId).orElse(null);
-            if (message == null) {
-                return;
-            }
-            WebSocketSession receiverSession = userSessions.get(message.getReceiverId());
+            MessageDTO messageDTO = objectMapper.readValue(body, MessageDTO.class);
+            Long receiverId = messageDTO.getReceiverId();
+            // 判断 receiver 是否在本机
+            WebSocketSession receiverSession = userSessions.get(receiverId);
             if (receiverSession == null || !receiverSession.isOpen()) {
-                return;
+                return; // 用户不在本机，忽略
             }
+            // 判断 receiver 当前活跃会话是否是这条消息所属会话
             Long activeConversationId = activeConversations.get(receiverSession.getId());
-            if (!conversationId.equals(activeConversationId)) {
-                return;
+            if (!messageDTO.getConversationId().equals(activeConversationId)) {
+                return; // 用户没打开这个会话，走通知路径而非实时推送
             }
             Map<String, Object> payload = Map.of(
                     "type", "MESSAGE",
-                    "conversationId", conversationId,
+                    "conversationId", messageDTO.getConversationId(),
                     "message", Map.of(
-                            "id", message.getId(),
-                            "conversationId", message.getConversationId(),
-                            "senderId", message.getSenderId(),
-                            "receiverId", message.getReceiverId(),
-                            "messageType", message.getMessageType().name(),
-                            "content", message.getContent() == null ? "" : message.getContent(),
-                            "imageUrl", message.getImageUrl() == null ? "" : message.getImageUrl(),
-                            "originalImageUrl", message.getOriginalImageUrl() == null ? "" : message.getOriginalImageUrl(),
-                            "isRead", message.getIsRead(),
-                            "createdAt", message.getCreatedAt() != null ? message.getCreatedAt().toString() : ""
+                            "id", messageDTO.getId(),
+                            "conversationId", messageDTO.getConversationId(),
+                            "senderId", messageDTO.getSenderId(),
+                            "receiverId", messageDTO.getReceiverId(),
+                            "messageType", messageDTO.getMessageType(),
+                            "content", messageDTO.getContent() == null ? "" : messageDTO.getContent(),
+                            "imageUrl", messageDTO.getImageUrl() == null ? "" : messageDTO.getImageUrl(),
+                            "originalImageUrl", messageDTO.getOriginalImageUrl() == null ? "" : messageDTO.getOriginalImageUrl(),
+                            "isRead", messageDTO.getIsRead(),
+                            "createdAt", messageDTO.getCreatedAt() != null ? messageDTO.getCreatedAt().toString() : ""
                     )
             );
             receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
         } catch (Exception e) {
-            log.error("Failed to push private message: conversationId={}, body={}, error={}", conversationId, body, e.getMessage());
+            log.error("Failed to push private message: body={}, error={}", body, e.getMessage());
         }
     }
 
