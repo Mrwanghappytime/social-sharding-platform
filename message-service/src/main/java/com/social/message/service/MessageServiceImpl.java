@@ -13,6 +13,7 @@ import com.social.common.exception.ErrorCode;
 import com.social.common.repository.ConversationRepository;
 import com.social.common.repository.MessageRepository;
 import com.social.common.util.LogUtil;
+import com.social.message.route.MessageRouteRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -39,13 +40,13 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final MessageRouteRegistry routeRegistry;
 
     /**
-     * 全局单一 channel：所有 message-service 实例订阅同一个 channel。
-     * 每个实例收到消息后，根据 receiverId 判断是否在本机 WebSocket 会话中，
-     * 命中则推送，未命中则忽略。避免 per-conversation channel 爆炸。
+     * 消息推送不再全局广播，改为定向投递到 receiver 所在实例的专属 channel
+     * （message:push:{instanceId}），由路由表 {@link MessageRouteRegistry} 定位实例。
+     * 消除"N 台实例都处理同一条消息"的浪费。
      */
-    public static final String MESSAGE_PUSH_CHANNEL = "message:push";
 
     @Override
     @Transactional
@@ -153,6 +154,25 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    public List<MessageDTO> getMessagesAfterId(Long conversationId, Long currentUserId, Long afterId) {
+        getConversationForParticipant(conversationId, currentUserId);
+        long safeAfterId = afterId != null ? afterId : 0L;
+        return messageRepository.findByConversationIdAndIdGreaterThanOrderByIdAsc(conversationId, safeAfterId).stream()
+                .map(this::toMessageDTO)
+                .toList();
+    }
+
+    @Override
+    public boolean isUserViewingConversation(Long userId, Long conversationId) {
+        if (userId == null || conversationId == null) {
+            return false;
+        }
+        // 路由表记录了用户在线所在实例及其当前活跃会话；匹配则说明对方正看着这个会话
+        Long activeConversation = routeRegistry.getActiveConversation(userId);
+        return conversationId.equals(activeConversation);
+    }
+
+    @Override
     public List<ConversationDTO> getConversationsByIds(List<Long> conversationIds, Long currentUserId) {
         if (conversationIds == null || conversationIds.isEmpty()) {
             return Collections.emptyList();
@@ -239,8 +259,15 @@ public class MessageServiceImpl implements MessageService {
 
     private void publishMessage(MessageDTO messageDTO) {
         try {
+            // 定向投递：查路由表定位 receiver 所在实例，只发到该实例的专属 channel。
+            // receiver 不在线（查不到路由）则不推送——消息已落库，靠对端上线/重连补拉恢复。
+            String instanceId = routeRegistry.getInstance(messageDTO.getReceiverId());
+            if (instanceId == null) {
+                return;
+            }
+            String channel = MessageRouteRegistry.INSTANCE_CHANNEL_PREFIX + instanceId;
             String payload = objectMapper.writeValueAsString(messageDTO);
-            stringRedisTemplate.convertAndSend(MESSAGE_PUSH_CHANNEL, payload);
+            stringRedisTemplate.convertAndSend(channel, payload);
         } catch (Exception e) {
             log.warn("Failed to publish message websocket event: messageId={}, error={}",
                     messageDTO.getId(), e.getMessage());

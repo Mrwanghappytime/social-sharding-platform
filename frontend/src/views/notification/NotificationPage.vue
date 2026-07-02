@@ -83,7 +83,8 @@ const fetchNotifications = async (page: number = 1) => {
         targetTitle: n.targetTitle,
         conversation: n.conversation,
         isRead: n.isRead,
-        createdAt: n.createdAt
+        createdAt: n.createdAt,
+        updatedAt: n.updatedAt
       }))
       notificationStore.clearNotifications()
       newNotifications.forEach(n => notificationStore.pushNotification(n))

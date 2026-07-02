@@ -200,14 +200,14 @@
             <div class="section">
                 <h2>系统架构图</h2>
                 <div class="info-box">
-                    <p><strong>关键设计：</strong>使用 <strong>单一全局 Redis Channel</strong>（<code>message:push</code>），所有 message-service 实例启动时订阅一次；每条消息广播到所有实例，各实例根据本地 WebSocket 会话表判断 receiver 是否在本机，命中则推送，未命中则忽略。彻底避免 per-conversation channel 数量爆炸。</p>
+                    <p><strong>关键设计（定向路由）：</strong>Redis 维护<strong>在线路由表</strong> <code>route:user:{userId}</code>（记录用户 WS 连在哪个实例 + 当前活跃会话，TTL 90s 心跳续期）。每个 message-service 实例只订阅<strong>专属 channel</strong> <code>message:push:{instanceId}</code>。发消息时先查路由表定位 receiver 所在实例，<strong>只向该实例定向投递</strong>，不再全局广播——消除"N 台实例都处理同一条消息"的浪费。</p>
                 </div>
                 <div class="diagram-container">
                     <div class="mermaid">
 graph TD
     subgraph 前端层
         A[Web 浏览器<br/>Vue 3 + Pinia]
-        C[WebSocket 单连接<br/>JOIN/LEAVE conversation]
+        C[WebSocket 单连接<br/>JOIN/LEAVE + 断线重连补拉]
     end
 
     subgraph 网关层
@@ -216,8 +216,8 @@ graph TD
 
     subgraph 微服务层
         H[facade-service<br/>API 聚合层]
-        I1[message-service 实例1<br/>本地 userSessions 表]
-        I2[message-service 实例2<br/>本地 userSessions 表]
+        I1[message-service 实例1<br/>订阅 message:push:inst1]
+        I2[message-service 实例2<br/>订阅 message:push:inst2]
         J[notification-service]
         K[user-service]
         L[file-service]
@@ -225,7 +225,8 @@ graph TD
 
     subgraph 数据存储层
         M[(MySQL<br/>conversations/messages)]
-        N[Redis Pub/Sub<br/>单一 channel: message:push]
+        RT[Redis 路由表<br/>route:user:id → instanceId]
+        N[Redis Pub/Sub<br/>专属 channel: message:push:instId]
         O[本地文件存储]
     end
 
@@ -240,16 +241,15 @@ graph TD
     H -->|Dubbo RPC| K
     H -->|Dubbo RPC| L
 
+    I1 -->|连接建立/心跳/断开<br/>维护路由| RT
+    I2 -->|连接建立/心跳/断开<br/>维护路由| RT
+
     I1 -->|保存消息| M
-    I2 -->|保存消息| M
+    I1 -->|1. 查路由 receiver 在哪| RT
+    I1 -->|2. 定向 publish<br/>message:push:inst2| N
 
-    I1 -->|publish MessageDTO<br/>全量数据| N
-    I2 -->|publish MessageDTO<br/>全量数据| N
-
-    N -->|广播消息| I1
-    N -->|广播消息| I2
-
-    I1 -.->|receiver 在本机?<br/>是: 推送 / 否: 忽略| A
+    N -->|只投递到 inst2| I2
+    I2 -.->|活跃会话匹配?<br/>是: 推送| A
 
     L -->|文件存储| O
 
@@ -262,45 +262,77 @@ graph TD
     style K fill:#fa709a,stroke:#333,stroke-width:2px
     style L fill:#fee140,stroke:#333,stroke-width:2px
     style M fill:#30cfd0,stroke:#333,stroke-width:2px
+    style RT fill:#f39c12,stroke:#333,stroke-width:3px,color:#fff
     style N fill:#e74c3c,stroke:#333,stroke-width:3px,color:#fff
                     </div>
                 </div>
             </div>
 
             <div class="section">
-                <h2>Redis Pub/Sub 广播模型详解</h2>
+                <h2>定向路由投递模型详解</h2>
                 <div class="diagram-container">
                     <div class="mermaid">
 graph LR
-    subgraph 消息发送端
-        S[用户A 发送消息<br/>实例1 接收]
-        S -->|publish MessageDTO<br/>含 receiverId=B| CH
+    subgraph 发送端
+        S[用户A 发消息<br/>实例1 处理]
+        S -->|① 查路由表<br/>route:user:B| RT
+        RT -->|返回 B 在 inst2| S
+        S -->|② 定向 publish<br/>message:push:inst2| CH
     end
 
     subgraph Redis
-        CH[单一 Channel<br/>message:push]
+        RT[路由表<br/>route:user:B=inst2]
+        CH[专属 Channel<br/>message:push:inst2]
     end
 
-    subgraph 消息接收端 各实例并行处理
-        CH -->|广播| R1[实例1 收到]
-        CH -->|广播| R2[实例2 收到]
-        CH -->|广播| R3[实例N 收到]
-
-        R1 -->|查 userSessions<br/>B 不在本机| X1[忽略]
-        R2 -->|查 userSessions<br/>B 在本机 ✓| PUSH[WebSocket 推送用户B]
-        R3 -->|查 userSessions<br/>B 不在本机| X3[忽略]
+    subgraph 接收端 仅目标实例被唤醒
+        CH -->|只投递| R2[实例2 收到]
+        R2 -->|活跃会话匹配 ✓| PUSH[WebSocket 推送用户B]
     end
 
+    NOTE[实例1/实例3...N<br/>完全不被唤醒<br/>零无效反序列化]
+
+    style RT fill:#f39c12,stroke:#333,stroke-width:3px,color:#fff
     style CH fill:#e74c3c,stroke:#333,stroke-width:3px,color:#fff
     style PUSH fill:#43e97b,stroke:#333,stroke-width:2px
-    style X1 fill:#95a5a6,stroke:#333,stroke-width:1px,color:#fff
-    style X3 fill:#95a5a6,stroke:#333,stroke-width:1px,color:#fff
+    style NOTE fill:#95a5a6,stroke:#333,stroke-width:1px,color:#fff
                     </div>
                 </div>
                 <div class="info-box">
-                    <p><strong>优势对比：</strong></p>
-                    <p><strong>❌ 旧方案（per-conversation channel）：</strong>N 个会话 = N 个 Redis channel，用户进出会话动态订阅/取消订阅，多实例场景消息可能丢失。</p>
-                    <p><strong>✅ 新方案（全局单 channel）：</strong>只有 1 个 Redis channel，实例启动时订阅一次，消息全量广播 + 本地路由过滤，多实例天然支持水平扩展。</p>
+                    <p><strong>三代演进对比：</strong></p>
+                    <p><strong>❌ 一代（per-conversation channel）：</strong>N 个会话 = N 个 channel，动态订阅/取消，多实例丢消息。</p>
+                    <p><strong>⚠️ 二代（全局单 channel 广播）：</strong>1 个 channel，但每条消息广播到全部 N 台实例，(N-1)/N 的算力浪费在无效反序列化上；实例越多 Redis 广播压力越大（M×N）。</p>
+                    <p><strong>✅ 三代（路由表 + 专属 channel 定向投递）：</strong>查路由表定位实例，只投递到 1 台目标实例。零无效唤醒，Redis 压力回落到 M，水平扩展无广播放大。</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>可靠性兜底：落库 + 断线重连补拉</h2>
+                <div class="info-box">
+                    <p><strong>定向投递的代价：</strong>连接迁移（换实例）或实例宕机时，路由表短暂脏数据会导致实时推送丢失。因此推送只作"尽力而为"的优化，可靠性由两层兜底保证：</p>
+                    <p><strong>① 消息必落库：</strong>发送时先写 MySQL，推送丢失 ≠ 数据丢失。</p>
+                    <p><strong>② 重连补拉：</strong>前端 WS 重连成功后，以本地最大消息 id 调用 <code>GET /conversations/{id}/messages/after?afterId=</code> 补拉断线期间的增量消息。</p>
+                    <p><strong>③ 前端幂等去重：</strong>推送、补拉、发送回显全部走 <code>upsertMessages</code>（按 id 去重 + 排序），任意来源交错都不重复、不乱序。</p>
+                </div>
+                <div class="diagram-container">
+                    <div class="mermaid">
+sequenceDiagram
+    participant B as 用户B(浏览器)
+    participant Msg as message-service
+    participant DB as MySQL
+
+    Note over B,Msg: B 断线期间，A 发了 3 条消息
+    Msg->>DB: 3 条消息落库(必达)
+    Msg--xB: 定向推送丢失(B已断线)
+
+    B->>B: 1秒后自动重连
+    B->>Msg: WS 重连成功 + JOIN
+    B->>Msg: GET messages/after?afterId=最大id
+    Msg->>DB: 查 id > afterId 的消息
+    DB-->>Msg: 返回漏掉的 3 条
+    Msg-->>B: 增量消息
+    B->>B: upsertMessages 幂等合并<br/>(与已推送的不重复)
+                    </div>
                 </div>
             </div>
 
@@ -315,29 +347,26 @@ sequenceDiagram
     participant Msg1 as message-service实例1
     participant Msg2 as message-service实例2
     participant DB as MySQL
+    participant RT as Redis路由表
     participant Redis as Redis Pub/Sub
-    participant 通知 as notification-service
     participant 用户B as 用户B(浏览器)
 
-    Note over 用户A,Msg1: 用户A的WS连接在实例1<br/>用户B的WS连接在实例2
+    Note over 用户A,Msg1: A的WS连实例1，B的WS连实例2
 
     用户A->>网关: POST 发送消息 (HTTP)
     网关->>Facade: 转发API请求
     Facade->>Msg1: Dubbo RPC sendTextMessage
-    Msg1->>DB: 保存消息记录
+    Msg1->>DB: 保存消息记录(必达)
     DB-->>Msg1: 消息ID
-    Msg1->>Redis: publish message:push<br/>(完整MessageDTO JSON)
+    Msg1->>RT: 查 route:user:B
+    RT-->>Msg1: B 在 实例2
+    Msg1->>Redis: 定向 publish<br/>message:push:inst2
     Msg1-->>Facade: MessageDTO
-    Facade->>通知: upsertConversationNotification
-    通知->>DB: 更新通知记录
     Facade-->>用户A: 200 OK
 
-    Note over Redis,Msg2: Redis广播到所有实例
-    Redis->>Msg1: 广播消息
-    Redis->>Msg2: 广播消息
-
-    Msg1->>Msg1: 查userSessions:<br/>B不在本机 → 忽略
-    Msg2->>Msg2: 查userSessions:<br/>B在本机 ✓ 且活跃会话匹配
+    Note over Redis,Msg2: 只有实例2被唤醒，实例1及其他实例不参与
+    Redis->>Msg2: 定向投递
+    Msg2->>Msg2: 校验B活跃会话匹配 ✓
     Msg2->>用户B: WebSocket实时推送
                     </div>
                 </div>

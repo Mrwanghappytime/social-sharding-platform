@@ -44,6 +44,7 @@ export const useMessageSocketStore = defineStore('messageSocket', () => {
     if (ws && ws.readyState === WebSocket.OPEN) return
     const token = localStorage.getItem('token')
     if (!token) return
+    const reconnecting = activeConversationId.value != null
     ws = new WebSocket(buildMessageWebSocketUrl(token))
 
     ws.onopen = () => {
@@ -56,7 +57,15 @@ export const useMessageSocketStore = defineStore('messageSocket', () => {
         }
       }, HEARTBEAT_MS)
       if (activeConversationId.value) {
-        joinConversation(activeConversationId.value)
+        const conversationId = activeConversationId.value
+        // 重新加入会话
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'JOIN_CONVERSATION', conversationId }))
+        }
+        // 断线重连：补拉断线期间可能漏推的消息（定向推送在迁移/宕机时可能丢失）
+        if (reconnecting) {
+          useMessageStore().syncMissedMessages(conversationId).catch(() => {})
+        }
       }
     }
 

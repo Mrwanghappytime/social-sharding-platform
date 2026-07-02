@@ -87,6 +87,7 @@ public class NotificationServiceImpl implements NotificationService {
                         dto.setTargetType(n.getTargetType());
                         dto.setIsRead(n.getIsRead());
                         dto.setCreatedAt(n.getCreatedAt() != null ? n.getCreatedAt().format(formatter) : null);
+                        dto.setUpdatedAt(n.getUpdatedAt() != null ? n.getUpdatedAt().format(formatter) : null);
                         return dto;
                     })
                     .toList();
@@ -131,9 +132,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void upsertConversationNotification(Long recipientId, Long actorId, Long conversationId,
-                                               String actorUsername, String actorAvatar) {
-        log.info(">>> upsertConversationNotification ENTER | recipientId={} | actorId={} | conversationId={}",
-                recipientId, actorId, conversationId);
+                                               String actorUsername, String actorAvatar, boolean silent) {
+        log.info(">>> upsertConversationNotification ENTER | recipientId={} | actorId={} | conversationId={} | silent={}",
+                recipientId, actorId, conversationId, silent);
         Notification notification = notificationRepository
                 .findByRecipientIdAndTypeAndTargetTypeAndTargetId(
                         recipientId,
@@ -153,16 +154,23 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setActorId(actorId);
         notification.setActorUsername(actorUsername);
         notification.setActorAvatar(actorAvatar);
-        notification.setIsRead(false);
+        // silent=true：对方正在该会话中，消息已实时推送 —— 标记已读、不推送提醒，
+        // 但仍要刷新时间使该会话在列表中上浮。
+        notification.setIsRead(silent);
+        // 显式刷新更新时间：silent 场景下 isRead 可能无变化，@PreUpdate 不一定触发，
+        // 手动置一次保证列表按 updatedAt 排序时该会话上浮。
+        notification.setUpdatedAt(java.time.LocalDateTime.now());
         Notification saved = notificationRepository.save(notification);
 
-        String channel = RedisKeys.notificationChannel(recipientId);
-        String message = saved.getId() + ":" + NotificationType.MESSAGE.name() + ":" + actorId + ":"
-                + conversationId + ":CONVERSATION:" + actorUsername + ":"
-                + (StringUtil.isNullOrEmpty(actorAvatar) ? " " : actorAvatar);
-        stringRedisTemplate.convertAndSend(channel, message);
-        log.info("<<< upsertConversationNotification EXIT | recipientId={} | notificationId={} | traceId={}",
-                recipientId, saved.getId(), LogUtil.getTraceId());
+        if (!silent) {
+            String channel = RedisKeys.notificationChannel(recipientId);
+            String message = saved.getId() + ":" + NotificationType.MESSAGE.name() + ":" + actorId + ":"
+                    + conversationId + ":CONVERSATION:" + actorUsername + ":"
+                    + (StringUtil.isNullOrEmpty(actorAvatar) ? " " : actorAvatar);
+            stringRedisTemplate.convertAndSend(channel, message);
+        }
+        log.info("<<< upsertConversationNotification EXIT | recipientId={} | notificationId={} | silent={} | traceId={}",
+                recipientId, saved.getId(), silent, LogUtil.getTraceId());
     }
 
     @Override

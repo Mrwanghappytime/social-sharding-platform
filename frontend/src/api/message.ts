@@ -14,6 +14,12 @@ export const getMessages = (conversationId: number, page: number = 1, size: numb
   })
 }
 
+export const getMessagesAfter = (conversationId: number, afterId: number) => {
+  return request.get(`/messages/conversations/${conversationId}/messages/after`, {
+    params: { afterId }
+  })
+}
+
 export const sendTextMessage = (conversationId: number, content: string) => {
   return request.post(`/messages/conversations/${conversationId}/messages/text`, { content })
 }

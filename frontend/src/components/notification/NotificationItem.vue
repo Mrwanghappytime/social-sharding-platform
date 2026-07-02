@@ -30,7 +30,7 @@
         <span>{{ conversationPreview }}</span>
         <span v-if="unreadCount > 0" class="message-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
       </div>
-      <span class="time">{{ formatTime(notification.createdAt || '') }}</span>
+      <span class="time">{{ formatTime(notification.updatedAt || notification.createdAt || '') }}</span>
     </div>
     <span v-if="!notification.isRead" class="unread-dot"></span>
   </div>

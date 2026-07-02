@@ -19,4 +19,5 @@ public class NotificationDTO implements Serializable {
     private String targetType;
     private Boolean isRead;
     private String createdAt;
+    private String updatedAt;
 }

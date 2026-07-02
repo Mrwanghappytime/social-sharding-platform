@@ -18,6 +18,7 @@ public class NotificationFacadeResponse implements Serializable {
     private ConversationFacadeResponse conversation;
     private Boolean isRead;
     private String createdAt;
+    private String updatedAt;
 
     public static NotificationFacadeResponse fromNotificationDTO(NotificationDTO notification, String targetTitle) {
         NotificationFacadeResponse response = new NotificationFacadeResponse();
@@ -31,6 +32,7 @@ public class NotificationFacadeResponse implements Serializable {
         response.setTargetTitle(targetTitle);
         response.setIsRead(notification.getIsRead());
         response.setCreatedAt(notification.getCreatedAt());
+        response.setUpdatedAt(notification.getUpdatedAt());
         return response;
     }
 }

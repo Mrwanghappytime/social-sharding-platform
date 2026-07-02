@@ -3,6 +3,7 @@ package com.social.message.websocket;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.social.common.dto.MessageDTO;
+import com.social.message.route.MessageRouteRegistry;
 import com.social.message.service.MessageServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -19,8 +20,10 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -31,9 +34,16 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @Value("${server.port:8088}")
+    private String serverPort;
+
     private final MessageServiceImpl messageService;
     private final RedisMessageListenerContainer listenerContainer;
+    private final MessageRouteRegistry routeRegistry;
     private final ObjectMapper objectMapper;
+
+    // 本实例唯一标识：IP:port:随机后缀，用于专属 channel 与路由表寻址
+    private String instanceId;
 
     // 用户级 WebSocket 会话：userId -> session
     private final Map<Long, WebSocketSession> userSessions = new ConcurrentHashMap<>();
@@ -43,17 +53,28 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
     private final Map<String, Long> activeConversations = new ConcurrentHashMap<>();
 
     /**
-     * 启动时订阅全局 channel。所有实例都收到广播，各自判断本机是否有目标用户。
-     * 不再按 conversation 动态订阅/取消订阅。
+     * 启动时生成 instanceId 并订阅本实例专属 channel。
+     * 发送方通过路由表定位到本实例后，只往这个 channel 投递，不再全局广播。
      */
     @PostConstruct
     public void init() {
+        this.instanceId = resolveInstanceId();
+        String channel = MessageRouteRegistry.INSTANCE_CHANNEL_PREFIX + instanceId;
         listenerContainer.addMessageListener(
                 (redisMessage, pattern) -> handleRedisMessage(new String(redisMessage.getBody(), StandardCharsets.UTF_8)),
-                new ChannelTopic(MessageServiceImpl.MESSAGE_PUSH_CHANNEL)
+                new ChannelTopic(channel)
         );
-        log.info("Message WebSocket handler subscribed to global channel: {}",
-                MessageServiceImpl.MESSAGE_PUSH_CHANNEL);
+        log.info("Message WebSocket handler subscribed to instance channel: {}", channel);
+    }
+
+    private String resolveInstanceId() {
+        String host;
+        try {
+            host = InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            host = "unknown";
+        }
+        return host + ":" + serverPort + ":" + UUID.randomUUID().toString().substring(0, 8);
     }
 
     @Override
@@ -65,7 +86,9 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         }
         userSessions.put(userId, session);
         sessionUsers.put(session.getId(), userId);
-        log.info("Message WebSocket connected: userId={}", userId);
+        // 登记路由：该用户连接落在本实例
+        routeRegistry.register(userId, instanceId);
+        log.info("Message WebSocket connected: userId={}, instanceId={}", userId, instanceId);
     }
 
     @Override
@@ -73,6 +96,11 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         JsonNode json = objectMapper.readTree(message.getPayload());
         String type = json.path("type").asText();
         if ("ping".equals(type)) {
+            // 心跳兼顾路由续期
+            Long userId = sessionUsers.get(session.getId());
+            if (userId != null) {
+                routeRegistry.refresh(userId, instanceId);
+            }
             session.sendMessage(new TextMessage("{\"type\":\"pong\"}"));
             return;
         }
@@ -93,8 +121,9 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         }
         // 权限校验
         messageService.isConversationParticipant(conversationId, userId);
-        // 只标记当前活跃会话，不做 Redis 订阅
+        // 本地标记 + 路由表记录活跃会话
         activeConversations.put(session.getId(), conversationId);
+        routeRegistry.updateActiveConversation(userId, instanceId, conversationId);
         session.sendMessage(new TextMessage("{\"type\":\"JOINED\",\"conversationId\":" + conversationId + "}"));
     }
 
@@ -102,26 +131,27 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         Long active = activeConversations.get(session.getId());
         if (active != null && active.equals(conversationId)) {
             activeConversations.remove(session.getId());
+            Long userId = sessionUsers.get(session.getId());
+            if (userId != null) {
+                routeRegistry.updateActiveConversation(userId, instanceId, null);
+            }
         }
     }
 
     /**
-     * 处理来自全局 Redis channel 的消息。
-     * 每个 message-service 实例都会收到，但只有 receiver 所在的实例才实际推送。
+     * 处理投递到本实例专属 channel 的消息。因为是定向投递，receiver 必然在本机，
+     * 只需再校验其当前活跃会话是否匹配（不匹配则不实时推送，走通知路径）。
      */
     private void handleRedisMessage(String body) {
         try {
             MessageDTO messageDTO = objectMapper.readValue(body, MessageDTO.class);
-            Long receiverId = messageDTO.getReceiverId();
-            // 判断 receiver 是否在本机
-            WebSocketSession receiverSession = userSessions.get(receiverId);
+            WebSocketSession receiverSession = userSessions.get(messageDTO.getReceiverId());
             if (receiverSession == null || !receiverSession.isOpen()) {
-                return; // 用户不在本机，忽略
+                return;
             }
-            // 判断 receiver 当前活跃会话是否是这条消息所属会话
             Long activeConversationId = activeConversations.get(receiverSession.getId());
             if (!messageDTO.getConversationId().equals(activeConversationId)) {
-                return; // 用户没打开这个会话，走通知路径而非实时推送
+                return;
             }
             Map<String, Object> payload = Map.of(
                     "type", "MESSAGE",
@@ -151,6 +181,8 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         activeConversations.remove(session.getId());
         if (userId != null) {
             userSessions.remove(userId);
+            // 仅当路由仍指向本实例时才删除（避免误删已重连到别处的用户）
+            routeRegistry.unregister(userId, instanceId);
         }
         log.info("Message WebSocket closed: userId={}, status={}", userId, status);
     }

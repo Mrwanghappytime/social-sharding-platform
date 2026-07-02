@@ -62,6 +62,18 @@ public class MessageFacadeController {
         return Result.success(PageResult.of(records, messages.getTotal(), messages.getPage(), messages.getSize()));
     }
 
+    @GetMapping("/conversations/{conversationId}/messages/after")
+    public Result<List<MessageFacadeResponse>> getMessagesAfter(
+            @RequestHeader("X-User-Id") Long currentUserId,
+            @PathVariable("conversationId") Long conversationId,
+            @RequestParam(name = "afterId", defaultValue = "0") Long afterId) {
+        List<MessageDTO> messages = messageService.getMessagesAfterId(conversationId, currentUserId, afterId);
+        List<MessageFacadeResponse> records = messages.stream()
+                .map(MessageFacadeResponse::fromMessageDTO)
+                .toList();
+        return Result.success(records);
+    }
+
     @PostMapping("/conversations/{conversationId}/messages/text")
     public Result<MessageFacadeResponse> sendTextMessage(
             @RequestHeader("X-User-Id") Long currentUserId,
@@ -92,10 +104,13 @@ public class MessageFacadeController {
     }
 
     private void upsertMessageNotification(Long senderId, Long receiverId, Long conversationId) {
+        // 对方是否正在查看该会话：是则静默 upsert（刷新时间+标记已读，不推送提醒），
+        // 保证会话在通知列表中仍上浮，但不产生"在会话里还收到提醒"的困扰。
+        boolean viewing = messageService.isUserViewingConversation(receiverId, conversationId);
         UserDTO sender = userService.getUserById(senderId);
         String username = sender.getUsername() != null ? sender.getUsername() : "未知用户";
         String avatar = sender.getAvatar() != null ? sender.getAvatar() : "";
-        notificationService.upsertConversationNotification(receiverId, senderId, conversationId, username, avatar);
+        notificationService.upsertConversationNotification(receiverId, senderId, conversationId, username, avatar, viewing);
     }
 
     private ConversationFacadeResponse enrichConversation(ConversationDTO conversation) {

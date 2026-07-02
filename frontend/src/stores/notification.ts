@@ -24,6 +24,7 @@ export interface Notification {
   }
   isRead: boolean
   createdAt?: string
+  updatedAt?: string
 }
 
 export const useNotificationStore = defineStore('notification', () => {
@@ -135,7 +136,8 @@ export const useNotificationStore = defineStore('notification', () => {
         targetType: data.targetType,
         conversation: data.conversation,
         isRead: false,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
       addNotification(notification, true)
     }, (connected: boolean) => {

@@ -14,6 +14,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     Page<Message> findByConversationId(Long conversationId, Pageable pageable);
 
+    java.util.List<Message> findByConversationIdAndIdGreaterThanOrderByIdAsc(Long conversationId, Long id);
+
     long countByConversationIdAndReceiverIdAndIsReadFalse(Long conversationId, Long receiverId);
 
     long countByReceiverIdAndIsReadFalse(Long receiverId);
