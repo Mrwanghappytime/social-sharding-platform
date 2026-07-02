@@ -58,6 +58,7 @@ public class MessageRouteRegistry {
 
     /** 更新用户当前活跃会话（用于判断是否需要实时推送/是否发通知）。 */
     public void updateActiveConversation(Long userId, String instanceId, Long conversationId) {
+        log.info("updateActiveConversation({}, {}, {})", userId, instanceId, conversationId);
         String key = routeKey(userId);
         if (conversationId == null) {
             stringRedisTemplate.opsForHash().delete(key, FIELD_ACTIVE_CONVERSATION);
